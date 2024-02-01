@@ -1,0 +1,19 @@
+cmake_minimum_required(VERSION 3.28)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+project(Janus)
+
+file(GLOB SOURCES
+    Main.cpp
+    window/*.cpp
+    tools/*.cpp
+)
+
+find_package(glfw3 REQUIRED)
+
+add_executable(Janus ${SOURCES})
+
+include_directories(${GLFW3_INCLUDE_DIR} window tools)
+
+target_link_libraries(Janus PRIVATE glfw)
