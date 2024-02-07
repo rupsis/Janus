@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.28)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(OpenGL_GL_PREFERENCE GLVND)
+
 
 project(Janus)
 
@@ -11,9 +13,10 @@ file(GLOB SOURCES
 )
 
 find_package(glfw3 REQUIRED)
+find_package(OpenGL REQUIRED)
 
 add_executable(Janus ${SOURCES})
 
 include_directories(${GLFW3_INCLUDE_DIR} window tools)
 
-target_link_libraries(Janus PRIVATE glfw)
+target_link_libraries(Janus PRIVATE glfw OpenGL::GL)
