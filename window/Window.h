@@ -1,5 +1,8 @@
 #pragma once
+#include "Model.h"
+#include "OGLRenderer.h"
 #include <GLFW/glfw3.h>
+#include <memory>
 #include <string>
 
 class Window {
@@ -13,6 +16,9 @@ class Window {
 
  private:
   GLFWwindow *mWindow = nullptr;
+
+  std::unique_ptr<OGLRenderer> mRenderer;
+  std::unique_ptr<Model> mModel;
 
   /** Window event handlers. */
   void handleWindowCloseEvents();

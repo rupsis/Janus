@@ -2,6 +2,7 @@
 
 ## Dependencies
 `brew install glfw`
+`brew install glm`
 
 ## Building
 ```

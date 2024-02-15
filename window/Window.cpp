@@ -9,7 +9,9 @@ bool Window::init(unsigned int width, unsigned int height, std::string title) {
   }
 
   // Set a 'hint' for the NEXT window created.
-  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   mWindow = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
 
@@ -19,31 +21,46 @@ bool Window::init(unsigned int width, unsigned int height, std::string title) {
     return false;
   }
 
-  /* 1) save the pointer to the instance as user pointer */
-  glfwSetWindowUserPointer(mWindow, this);
+  // /* 1) save the pointer to the instance as user pointer */
+  // glfwSetWindowUserPointer(mWindow, this);
 
-  /* 2) use a lambda to get the pointer and call the member function */
-  glfwSetWindowCloseCallback(mWindow, [](GLFWwindow *win) {
-    auto thisWindow = static_cast<Window *>(glfwGetWindowUserPointer(win));
-    thisWindow->handleWindowCloseEvents();
-  });
+  // /* 2) use a lambda to get the pointer and call the member function */
+  // glfwSetWindowCloseCallback(mWindow, [](GLFWwindow *win) {
+  //   auto thisWindow = static_cast<Window *>(glfwGetWindowUserPointer(win));
+  //   thisWindow->handleWindowCloseEvents();
+  // });
 
-  glfwSetWindowPosCallback(mWindow, [](GLFWwindow *win, int xpos, int ypos) {
-    auto thisWindow = static_cast<Window *>(glfwGetWindowUserPointer(win));
-    thisWindow->handleWindowMoveEvents(xpos, ypos);
-  });
+  // glfwSetWindowPosCallback(mWindow, [](GLFWwindow *win, int xpos, int ypos) {
+  //   auto thisWindow = static_cast<Window *>(glfwGetWindowUserPointer(win));
+  //   thisWindow->handleWindowMoveEvents(xpos, ypos);
+  // });
 
-  glfwSetKeyCallback(mWindow, [](GLFWwindow *win, int key, int scancode, int action, int mods) {
-    auto thisWindow = static_cast<Window *>(glfwGetWindowUserPointer(win));
-    thisWindow->handleKeyEvents(key, scancode, action, mods);
-  });
+  // glfwSetKeyCallback(mWindow, [](GLFWwindow *win, int key, int scancode, int action, int mods) {
+  //   auto thisWindow = static_cast<Window *>(glfwGetWindowUserPointer(win));
+  //   thisWindow->handleKeyEvents(key, scancode, action, mods);
+  // });
 
-  glfwSetMouseButtonCallback(mWindow, [](GLFWwindow *win, int button, int action, int mods) {
-    auto thisWindow = static_cast<Window *>(glfwGetWindowUserPointer(win));
-    thisWindow->handleMouseButtonEvents(button, action, mods);
-  });
+  // glfwSetMouseButtonCallback(mWindow, [](GLFWwindow *win, int button, int action, int mods) {
+  //   auto thisWindow = static_cast<Window *>(glfwGetWindowUserPointer(win));
+  //   thisWindow->handleMouseButtonEvents(button, action, mods);
+  // });
 
   glfwMakeContextCurrent(mWindow);
+
+  mRenderer = std::make_unique<OGLRenderer>();
+  if (!mRenderer->init(width, height)) {
+    glfwTerminate();
+    return false;
+  }
+
+  glfwSetWindowUserPointer(mWindow, mRenderer.get());
+  glfwSetWindowSizeCallback(mWindow, [](GLFWwindow *win, int width, int height) {
+    auto renderer = static_cast<OGLRenderer *>(glfwGetWindowUserPointer(win));
+    renderer->setSize(width, height);
+  });
+
+  mModel = std::make_unique<Model>();
+  mModel->init();
 
   Logger::log(1, "%s: Window successfully initialized\n", __FUNCTION__);
 
@@ -55,17 +72,11 @@ void Window::mainLoop() {
   glfwSwapInterval(1);
   float color = 0.0f;
 
+  mRenderer->uploadData(mModel->getVertexData());
+
   while (!glfwWindowShouldClose(mWindow)) {
-    color >= 1.0f ? color = 0.0f : color += 0.01f;
-    glClearColor(color, color, color, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    // By default GLFW activates double buffering
-    //  next render call is in back buffer, previous render frame
-    // is in front buffer. Swap them.
+    mRenderer->draw();
     glfwSwapBuffers(mWindow);
-
-    // Poll events in main loop.
     glfwPollEvents();
   }
 }
