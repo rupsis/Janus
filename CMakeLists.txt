@@ -6,7 +6,7 @@ set(OpenGL_GL_PREFERENCE GLVND)
 project(Janus)
 
 file(GLOB SOURCES
-    Main.cpp
+    main.cpp
     window/*.cpp
     tools/*.cpp
     src/glad.c
