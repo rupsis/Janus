@@ -30,7 +30,7 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
     return false;
   }
 
-  if (!mChangedShader.loadShaders("shader/changed.vert", "shader/changed.vert")) {
+  if (!mChangedShader.loadShaders("shader/changed.vert", "shader/changed.frag")) {
     return false;
   }
 
