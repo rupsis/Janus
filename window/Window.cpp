@@ -35,10 +35,7 @@ bool Window::init(unsigned int width, unsigned int height, std::string title) {
   //   thisWindow->handleWindowMoveEvents(xpos, ypos);
   // });
 
-  // glfwSetKeyCallback(mWindow, [](GLFWwindow *win, int key, int scancode, int action, int mods) {
-  //   auto thisWindow = static_cast<Window *>(glfwGetWindowUserPointer(win));
-  //   thisWindow->handleKeyEvents(key, scancode, action, mods);
-  // });
+  // Bind key events to our render to allow switching between shaders
 
   // glfwSetMouseButtonCallback(mWindow, [](GLFWwindow *win, int button, int action, int mods) {
   //   auto thisWindow = static_cast<Window *>(glfwGetWindowUserPointer(win));
@@ -47,9 +44,10 @@ bool Window::init(unsigned int width, unsigned int height, std::string title) {
 
   glfwMakeContextCurrent(mWindow);
 
-  mRenderer = std::make_unique<OGLRenderer>();
+  mRenderer = std::make_unique<OGLRenderer>(mWindow);
   if (!mRenderer->init(width, height)) {
     glfwTerminate();
+    Logger::log(1, "%s error: Could not init OpenGL\n", __FUNCTION__);
     return false;
   }
 
@@ -57,6 +55,11 @@ bool Window::init(unsigned int width, unsigned int height, std::string title) {
   glfwSetWindowSizeCallback(mWindow, [](GLFWwindow *win, int width, int height) {
     auto renderer = static_cast<OGLRenderer *>(glfwGetWindowUserPointer(win));
     renderer->setSize(width, height);
+  });
+
+  glfwSetKeyCallback(mWindow, [](GLFWwindow *win, int key, int scancode, int action, int mods) {
+    auto renderer = static_cast<OGLRenderer *>(glfwGetWindowUserPointer(win));
+    renderer->handleKeyEvents(key, scancode, action, mods);
   });
 
   mModel = std::make_unique<Model>();

@@ -1,6 +1,10 @@
 #include "OGLRenderer.h"
 #include "Logger.h"
 
+OGLRenderer::OGLRenderer(GLFWwindow *window) {
+  mWindow = window;
+}
+
 bool OGLRenderer::init(unsigned int width, unsigned int height) {
   Logger::log(1, "%s: OpenGL Render Inti \n", __FUNCTION__);
   // Initialize OpenGL via Glad.
@@ -22,9 +26,14 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
 
   mVertexBuffer.init();
 
-  if (!mShader.loadShaders("shader/basic.vert", "shader/basic.frag")) {
+  if (!mBasicShader.loadShaders("shader/basic.vert", "shader/basic.frag")) {
     return false;
   }
+
+  if (!mChangedShader.loadShaders("shader/changed.vert", "shader/changed.vert")) {
+    return false;
+  }
+
   return true;
 }
 
@@ -48,7 +57,13 @@ void OGLRenderer::draw() {
   glEnable(GL_CULL_FACE);
 
   // draw triangle from buffer
-  mShader.use();
+  if (mUseChangedShader) {
+    mChangedShader.use();
+  }
+  else {
+    mBasicShader.use();
+  }
+
   mTex.bind();
   mVertexBuffer.bind();
   mVertexBuffer.draw(GL_TRIANGLES, 0, mTriangleCount);
@@ -59,8 +74,18 @@ void OGLRenderer::draw() {
 }
 
 void OGLRenderer::cleanup() {
-  mShader.cleanup();
+  mBasicShader.cleanup();
+  mChangedShader.cleanup();
   mTex.cleanup();
   mVertexBuffer.cleanup();
   mFramebuffer.cleanup();
+}
+
+void OGLRenderer::handleKeyEvents(int key, int scancode, int action, int mods) {
+  Logger::log(1, "%s: Render key handle event \n", __FUNCTION__);
+
+  if (glfwGetKey(mWindow, GLFW_KEY_SPACE) == GLFW_PRESS) {
+    Logger::log(1, "%s: shader change key handle event \n", __FUNCTION__);
+    mUseChangedShader = !mUseChangedShader;
+  }
 }

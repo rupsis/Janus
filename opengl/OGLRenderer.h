@@ -18,16 +18,24 @@
 
 class OGLRenderer {
  public:
+  OGLRenderer(GLFWwindow *window);
+
   bool init(unsigned int width, unsigned int height);
   void setSize(unsigned int width, unsigned int height);
   void cleanup();
   void uploadData(OGLMesh vertexData);
   void draw();
 
+  /* Key Handlers. */
+  void handleKeyEvents(int key, int scancode, int action, int mods);
+
  private:
-  Shader mShader{};
+  Shader mBasicShader{};
+  Shader mChangedShader{};
   Framebuffer mFramebuffer{};
   VertexBuffer mVertexBuffer{};
   Texture mTex{};
+  GLFWwindow *mWindow = nullptr;
   int mTriangleCount = 0;
+  bool mUseChangedShader = false;
 };
