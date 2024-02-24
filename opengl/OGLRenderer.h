@@ -46,6 +46,8 @@ class OGLRenderer {
   GLFWwindow *mWindow = nullptr;
   int mTriangleCount = 0;
   bool mUseChangedShader = false;
+  int mWidth = 0;
+  int mHeight = 0;
 
   glm::mat4 mViewMatrix = glm::mat4(1.0f);
   glm::mat4 mProjectionMatrix = glm::mat4(1.0f);
