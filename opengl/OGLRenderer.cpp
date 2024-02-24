@@ -1,5 +1,7 @@
-#include "OGLRenderer.h"
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "Logger.h"
+#include "OGLRenderer.h"
 
 OGLRenderer::OGLRenderer(GLFWwindow *window) {
   mWindow = window;
@@ -58,11 +60,13 @@ void OGLRenderer::draw() {
 
   // draw triangle from buffer
   if (mUseChangedShader) {
+    mViewMatrix = glm::rotate(glm::mat4(1.0f), 0.2f, glm::vec3(0.0f, 0.0f, 1.0f));
     mChangedShader.use();
   }
   else {
     mBasicShader.use();
   }
+  mUniformBuffer.uploadUboData(mViewMatrix, mProjectionMatrix);
 
   mTex.bind();
   mVertexBuffer.bind();

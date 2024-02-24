@@ -12,6 +12,7 @@
 #include "Framebuffer.h"
 #include "Shader.h"
 #include "Texture.h"
+#include "UniformBuffer.h"
 #include "VertexBuffer.h"
 
 #include "OGLRenderData.h"
@@ -30,12 +31,22 @@ class OGLRenderer {
   void handleKeyEvents(int key, int scancode, int action, int mods);
 
  private:
+  /* Shaders. */
   Shader mBasicShader{};
   Shader mChangedShader{};
+
+  /* Texture. */
+  Texture mTex{};
+
+  /* Buffers. */
   Framebuffer mFramebuffer{};
   VertexBuffer mVertexBuffer{};
-  Texture mTex{};
+  UniformBuffer mUniformBuffer{};
+
   GLFWwindow *mWindow = nullptr;
   int mTriangleCount = 0;
   bool mUseChangedShader = false;
+
+  glm::mat4 mViewMatrix = glm::mat4(1.0f);
+  glm::mat4 mProjectionMatrix = glm::mat4(1.0f);
 };

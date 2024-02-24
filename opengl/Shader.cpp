@@ -36,6 +36,8 @@ bool Shader::loadShaders(std::string vertexShaderFileName, std::string fragmentS
 }
 
 void Shader::cleanup() {
+  GLuint uboIndex = glGetUniformBlockIndex(mShaderProgram, "Matrices");
+  glUniformBlockBinding(mShaderProgram, uboIndex, 0);
   glDeleteProgram(mShaderProgram);
 }
 
