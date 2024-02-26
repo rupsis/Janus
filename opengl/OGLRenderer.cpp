@@ -4,13 +4,13 @@
 #include "OGLRenderer.h"
 
 OGLRenderer::OGLRenderer(GLFWwindow *window) {
-  mWindow = window;
+  mRenderData.rdWindow = window;
 }
 
 bool OGLRenderer::init(unsigned int width, unsigned int height) {
   /* required for perspective */
-  mWidth = width;
-  mHeight = height;
+  mRenderData.rdWidth = width;
+  mRenderData.rdHeight = height;
 
   Logger::log(1, "%s: OpenGL Render Inti \n", __FUNCTION__);
   // Initialize OpenGL via Glad.
@@ -44,6 +44,8 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
     return false;
   }
 
+  mUserInterface.init(mRenderData);
+
   return true;
 }
 
@@ -54,7 +56,7 @@ void OGLRenderer::setSize(unsigned int width, unsigned int height) {
 
 void OGLRenderer::uploadData(OGLMesh vertexData) {
   Logger::log(1, "%s: OpenGL Render uploadData \n", __FUNCTION__);
-  mTriangleCount = vertexData.vertices.size();
+  mRenderData.rdTirangleCount = vertexData.vertices.size();
   mVertexBuffer.uploadData(vertexData);
 }
 
@@ -70,8 +72,11 @@ void OGLRenderer::draw() {
   glm::vec3 cameraLookAtPosition = glm::vec3(0.0f, 0.0f, 0.0f);
   glm::vec3 cameraUpVector = glm::vec3(0.0f, 1.0f, 0.0f);
 
-  mProjectionMatrix = glm::perspective(
-      glm::radians(90.0f), static_cast<float>(mWidth) / static_cast<float>(mHeight), 0.1f, 100.f);
+  mProjectionMatrix = glm::perspective(glm::radians(90.0f),
+                                       static_cast<float>(mRenderData.rdWidth) /
+                                           static_cast<float>(mRenderData.rdHeight),
+                                       0.1f,
+                                       100.f);
 
   float t = glfwGetTime();
 
@@ -92,14 +97,17 @@ void OGLRenderer::draw() {
 
   mTex.bind();
   mVertexBuffer.bind();
-  mVertexBuffer.draw(GL_TRIANGLES, 0, mTriangleCount);
+  mVertexBuffer.draw(GL_TRIANGLES, 0, mRenderData.rdTirangleCount);
   mVertexBuffer.unbind();
   mTex.unbind();
   mFramebuffer.unbind();
   mFramebuffer.drawToScreen();
+  mUserInterface.createFrame(mRenderData);
+  mUserInterface.render();
 }
 
 void OGLRenderer::cleanup() {
+  mUserInterface.cleanup();
   mBasicShader.cleanup();
   mChangedShader.cleanup();
   mTex.cleanup();

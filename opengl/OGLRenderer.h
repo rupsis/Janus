@@ -1,5 +1,6 @@
 #pragma once
 
+#include "UserInterface.h"
 // Include glad.h before GLFW,
 // as it changes it's behavior
 #include <glad/glad.h>
@@ -32,6 +33,7 @@ class OGLRenderer {
 
  private:
   OGLRenderData mRenderData{};
+  UserInterface mUserInterface{};
 
   /* Shaders. */
   Shader mBasicShader{};
