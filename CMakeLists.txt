@@ -7,11 +7,12 @@ project(Janus)
 
 file(GLOB SOURCES
     main.cpp
+    src/glad.c
     window/*.cpp
     tools/*.cpp
-    src/glad.c
-    model/*.cpp
     opengl/*.cpp
+    model/*.cpp
+    imgui/*.cpp
 )
 
 find_package(glfw3 REQUIRED)
@@ -20,6 +21,6 @@ find_package(glm REQUIRED)
 
 add_executable(Janus ${SOURCES})
 
-include_directories(${GLFW3_INCLUDE_DIR} window tools src include model opengl)
+include_directories(${GLFW3_INCLUDE_DIR} include src window tools opengl model imgui)
 
 target_link_libraries(Janus PRIVATE glfw OpenGL::GL)
