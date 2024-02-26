@@ -31,6 +31,8 @@ class OGLRenderer {
   void handleKeyEvents(int key, int scancode, int action, int mods);
 
  private:
+  OGLRenderData mRenderData{};
+
   /* Shaders. */
   Shader mBasicShader{};
   Shader mChangedShader{};
@@ -43,12 +45,9 @@ class OGLRenderer {
   VertexBuffer mVertexBuffer{};
   UniformBuffer mUniformBuffer{};
 
-  GLFWwindow *mWindow = nullptr;
-  int mTriangleCount = 0;
-  bool mUseChangedShader = false;
-  int mWidth = 0;
-  int mHeight = 0;
-
+  /* UniformBuffer Data. */
   glm::mat4 mViewMatrix = glm::mat4(1.0f);
   glm::mat4 mProjectionMatrix = glm::mat4(1.0f);
+
+  bool mUseChangedShader = false;
 };
