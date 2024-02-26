@@ -106,7 +106,10 @@ void OGLRenderer::draw() {
   mTex.unbind();
   mFramebuffer.unbind();
   mFramebuffer.drawToScreen();
+
+  mUIGenerateTimer.start();
   mUserInterface.createFrame(mRenderData);
+  mRenderData.rdUIGenerateTime = mUIGenerateTimer.stop();
   mUserInterface.render();
 
   //  Calculate the FPS

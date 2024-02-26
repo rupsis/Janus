@@ -40,6 +40,13 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   ImGui::Text("%s", std::to_string(framesPerSecond).c_str());
   ImGui::Separator();
 
+  ImGui::Text("UI Generation Time:");
+  ImGui::SameLine();
+  ImGui::Text("%s", std::to_string(renderData.rdUIGenerateTime).c_str());
+  ImGui::SameLine();
+  ImGui::Text("ms");
+  ImGui::Separator();
+
   ImGui::Text("Triangles:");
   ImGui::SameLine();
   ImGui::Text("%s", std::to_string(renderData.rdTriangleCount).c_str());
