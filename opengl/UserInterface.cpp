@@ -26,21 +26,35 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   ImGui::SetNextWindowBgAlpha(0.8f);
   ImGui::Begin("Control", nullptr, imguiWindowFlags);
 
+  // TODO make it's own method?
+  static float newFps = 0.0f;
+  // Avoid division by 0
+  if (renderData.rdFrameTime > 0.0) {
+    newFps = 1.0f / renderData.rdFrameTime;
+  }
+  //  Average out previous FPS with new FPS based on averaging Alpha
+  framesPerSecond = (averagingAlpha * framesPerSecond) + (1.0f - averagingAlpha) * newFps;
+
+  ImGui::Text("FPS:");
+  ImGui::SameLine();
+  ImGui::Text("%s", std::to_string(framesPerSecond).c_str());
+  ImGui::Separator();
+
   ImGui::Text("Triangles:");
   ImGui::SameLine();
-  ImGui::Text(std::to_string(renderData.rdTirangleCount).c_str());
+  ImGui::Text("%s", std::to_string(renderData.rdTriangleCount).c_str());
 
   std::string windowDims = std::to_string(renderData.rdHeight) + "x" +
                            std::to_string(renderData.rdWidth);
   ImGui::Text("Window Dimensions:");
   ImGui::SameLine();
-  ImGui::Text(windowDims.c_str());
+  ImGui::Text("%s", windowDims.c_str());
 
   std::string imgWindowPos = std::to_string(static_cast<int>(ImGui::GetWindowPos().x)) + "/" +
                              std::to_string(static_cast<int>(ImGui::GetWindowPos().y));
   ImGui::Text("ImGui Window Position:");
   ImGui::SameLine();
-  ImGui::Text(imgWindowPos.c_str());
+  ImGui::Text("%s", imgWindowPos.c_str());
 
   ImGui::End();
 }

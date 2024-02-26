@@ -56,12 +56,16 @@ void OGLRenderer::setSize(unsigned int width, unsigned int height) {
 
 void OGLRenderer::uploadData(OGLMesh vertexData) {
   Logger::log(1, "%s: OpenGL Render uploadData \n", __FUNCTION__);
-  mRenderData.rdTirangleCount = vertexData.vertices.size();
+  mRenderData.rdTriangleCount = vertexData.vertices.size();
   mVertexBuffer.uploadData(vertexData);
 }
 
 void OGLRenderer::draw() {
   Logger::log(1, "%s: OpenGL Render draw \n", __FUNCTION__);
+
+  static float prevFrameStartTime = 0.0f;
+  float frameStartTime = glfwGetTime();
+
   // Bind buffer to let us receive vertex data.
   mFramebuffer.bind();
   glClearColor(0.1f, 0.1f, 0.1f, 0.1f);
@@ -97,13 +101,17 @@ void OGLRenderer::draw() {
 
   mTex.bind();
   mVertexBuffer.bind();
-  mVertexBuffer.draw(GL_TRIANGLES, 0, mRenderData.rdTirangleCount);
+  mVertexBuffer.draw(GL_TRIANGLES, 0, mRenderData.rdTriangleCount);
   mVertexBuffer.unbind();
   mTex.unbind();
   mFramebuffer.unbind();
   mFramebuffer.drawToScreen();
   mUserInterface.createFrame(mRenderData);
   mUserInterface.render();
+
+  //  Calculate the FPS
+  mRenderData.rdFrameTime = frameStartTime - prevFrameStartTime;
+  prevFrameStartTime = frameStartTime;
 }
 
 void OGLRenderer::cleanup() {
