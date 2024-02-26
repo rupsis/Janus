@@ -31,6 +31,10 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   }
 
   mVertexBuffer.init();
+  Logger::log(1, "%s: vertex buffer successfully created\n", __FUNCTION__);
+
+  mUniformBuffer.init();
+  Logger::log(1, "%s: uniform buffer successfully created\n", __FUNCTION__);
 
   if (!mBasicShader.loadShaders("shader/basic.vert", "shader/basic.frag")) {
     return false;
