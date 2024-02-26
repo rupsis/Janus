@@ -118,7 +118,7 @@ void OGLRenderer::cleanup() {
 void OGLRenderer::handleKeyEvents(int key, int scancode, int action, int mods) {
   Logger::log(1, "%s: Render key handle event \n", __FUNCTION__);
 
-  if (glfwGetKey(mWindow, GLFW_KEY_SPACE) == GLFW_PRESS) {
+  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_SPACE) == GLFW_PRESS) {
     Logger::log(1, "%s: shader change key handle event \n", __FUNCTION__);
     mUseChangedShader = !mUseChangedShader;
   }

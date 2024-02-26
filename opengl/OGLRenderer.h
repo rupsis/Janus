@@ -1,6 +1,5 @@
 #pragma once
 
-#include "UserInterface.h"
 // Include glad.h before GLFW,
 // as it changes it's behavior
 #include <glad/glad.h>
@@ -14,6 +13,7 @@
 #include "Shader.h"
 #include "Texture.h"
 #include "UniformBuffer.h"
+#include "UserInterface.h"
 #include "VertexBuffer.h"
 
 #include "OGLRenderData.h"

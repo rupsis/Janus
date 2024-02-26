@@ -3,6 +3,8 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+#include <glad/glad.h>
+
 #include <GLFW/glfw3.h>
 
 /* Due to the usage of GLM, the data is organized in system memory
