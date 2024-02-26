@@ -29,4 +29,6 @@ struct OGLRenderData {
   unsigned int rdTriangleCount = 0;
   float rdFrameTime = 0.0f;
   float rdUIGenerateTime = 0.0f;
+
+  bool rdUseChangedShader = false;
 };

@@ -87,7 +87,7 @@ void OGLRenderer::draw() {
   glm::mat4 view = glm::mat4(1.0);
 
   // draw triangle from buffer
-  if (mUseChangedShader) {
+  if (mRenderData.rdUseChangedShader) {
     glm::vec3 offset = glm::vec3(0.0, 0.0, -1.0);
     view = glm::rotate(glm::mat4(1.0f), -t, glm::vec3(0.0f, 0.0f, 1.0f) * offset);
     mChangedShader.use();
@@ -128,9 +128,4 @@ void OGLRenderer::cleanup() {
 
 void OGLRenderer::handleKeyEvents(int key, int scancode, int action, int mods) {
   Logger::log(1, "%s: Render key handle event \n", __FUNCTION__);
-
-  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_SPACE) == GLFW_PRESS) {
-    Logger::log(1, "%s: shader change key handle event \n", __FUNCTION__);
-    mUseChangedShader = !mUseChangedShader;
-  }
 }

@@ -63,6 +63,28 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   ImGui::SameLine();
   ImGui::Text("%s", imgWindowPos.c_str());
 
+  static bool checkBoxChecked = false;
+  ImGui::Checkbox("Check Me", &checkBoxChecked);
+
+  if (checkBoxChecked) {
+    ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
+    ImGui::Text("Yes");
+    ImGui::PopStyleColor();
+  }
+
+  if (ImGui::Button("Toggle Shader")) {
+    renderData.rdUseChangedShader = !renderData.rdUseChangedShader;
+  }
+
+  ImGui::SameLine();
+  if (!renderData.rdUseChangedShader) {
+    ImGui::Text("Basic Shader");
+  }
+  else {
+    ImGui::Text("Changed Shader");
+  }
+
   ImGui::End();
 }
 
