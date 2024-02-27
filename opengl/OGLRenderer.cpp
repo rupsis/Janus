@@ -140,12 +140,13 @@ void OGLRenderer::handleMouseButtonEvents(int button, int action, int mods) {
 
   if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
     mMouseLock = !mMouseLock;
-  }
 
-  if (mMouseLock) {
-    glfwSetInputMode(mRenderData.rdWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    if (glfwRawMouseMotionSupported()) {
-      glfwSetInputMode(mRenderData.rdWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    if (mMouseLock) {
+      glfwSetInputMode(mRenderData.rdWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      /* enable raw mode if possible */
+      if (glfwRawMouseMotionSupported()) {
+        glfwSetInputMode(mRenderData.rdWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+      }
     }
     else {
       glfwSetInputMode(mRenderData.rdWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
