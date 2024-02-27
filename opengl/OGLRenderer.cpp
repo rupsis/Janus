@@ -76,7 +76,7 @@ void OGLRenderer::draw() {
   glm::vec3 cameraLookAtPosition = glm::vec3(0.0f, 0.0f, 0.0f);
   glm::vec3 cameraUpVector = glm::vec3(0.0f, 1.0f, 0.0f);
 
-  mProjectionMatrix = glm::perspective(glm::radians(90.0f),
+  mProjectionMatrix = glm::perspective(glm::radians(static_cast<float>(mRenderData.rdFieldOfView)),
                                        static_cast<float>(mRenderData.rdWidth) /
                                            static_cast<float>(mRenderData.rdHeight),
                                        0.1f,

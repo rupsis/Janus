@@ -31,4 +31,5 @@ struct OGLRenderData {
   float rdUIGenerateTime = 0.0f;
 
   bool rdUseChangedShader = false;
+  int rdFieldOfView = 90;
 };

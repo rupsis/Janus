@@ -85,6 +85,10 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
     ImGui::Text("Changed Shader");
   }
 
+  ImGui::Text("Field of View");
+  ImGui::SameLine();
+  ImGui::SliderInt("##FOV", &renderData.rdFieldOfView, 40, 150);
+
   ImGui::End();
 }
 
