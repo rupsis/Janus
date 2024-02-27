@@ -155,12 +155,17 @@ void OGLRenderer::handleMouseButtonEvents(int button, int action, int mods) {
 }
 
 void OGLRenderer::handleMousePositionEvents(double xPos, double yPos) {
+
+  /* forward to ImGui */
   ImGuiIO &io = ImGui::GetIO();
   io.AddMousePosEvent((float)xPos, (float)yPos);
+
+  /* hide from application */
   if (io.WantCaptureMouse) {
     return;
   }
 
+  /* calculate relative movement from last position */
   int mouseMoveRelX = static_cast<int>(xPos) - mMouseXPos;
   int mouseMoveRelY = static_cast<int>(yPos) - mMouseYPos;
 
@@ -184,8 +189,9 @@ void OGLRenderer::handleMousePositionEvents(double xPos, double yPos) {
     if (mRenderData.rdViewElevation < -89.0) {
       mRenderData.rdViewElevation = -89.0;
     }
-
-    mMouseXPos = static_cast<int>(xPos);
-    mMouseYPos = static_cast<int>(yPos);
   }
+
+  /* save old values*/
+  mMouseXPos = static_cast<int>(xPos);
+  mMouseYPos = static_cast<int>(yPos);
 }
