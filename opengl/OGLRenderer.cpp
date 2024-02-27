@@ -1,4 +1,5 @@
 #include <glm/gtc/matrix_transform.hpp>
+#include <imgui_impl_glfw.h>
 
 #include "Logger.h"
 #include "OGLRenderer.h"
@@ -72,10 +73,6 @@ void OGLRenderer::draw() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glEnable(GL_CULL_FACE);
 
-  glm::vec3 cameraPosition = glm::vec3(0.4f, 0.3f, 1.0f);
-  glm::vec3 cameraLookAtPosition = glm::vec3(0.0f, 0.0f, 0.0f);
-  glm::vec3 cameraUpVector = glm::vec3(0.0f, 1.0f, 0.0f);
-
   mProjectionMatrix = glm::perspective(glm::radians(static_cast<float>(mRenderData.rdFieldOfView)),
                                        static_cast<float>(mRenderData.rdWidth) /
                                            static_cast<float>(mRenderData.rdHeight),
@@ -84,19 +81,19 @@ void OGLRenderer::draw() {
 
   float t = glfwGetTime();
 
-  glm::mat4 view = glm::mat4(1.0);
+  glm::mat4 model = glm::mat4(1.0);
 
   // draw triangle from buffer
   if (mRenderData.rdUseChangedShader) {
     glm::vec3 offset = glm::vec3(0.0, 0.0, -1.0);
-    view = glm::rotate(glm::mat4(1.0f), -t, glm::vec3(0.0f, 0.0f, 1.0f) * offset);
+    model = glm::rotate(glm::mat4(1.0f), -t, glm::vec3(0.0f, 0.0f, 1.0f) * offset);
     mChangedShader.use();
   }
   else {
-    view = glm::rotate(glm::mat4(1.0f), t, glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::rotate(glm::mat4(1.0f), t, glm::vec3(0.0f, 0.0f, 1.0f));
     mBasicShader.use();
   }
-  mViewMatrix = glm::lookAt(cameraPosition, cameraLookAtPosition, cameraUpVector) * view;
+  mViewMatrix = mCamera.getViewMatrix(mRenderData) * model;
   mUniformBuffer.uploadUboData(mViewMatrix, mProjectionMatrix);
 
   mTex.bind();
@@ -128,4 +125,66 @@ void OGLRenderer::cleanup() {
 
 void OGLRenderer::handleKeyEvents(int key, int scancode, int action, int mods) {
   Logger::log(1, "%s: Render key handle event \n", __FUNCTION__);
+}
+
+/* Mouse Handlers. */
+void OGLRenderer::handleMouseButtonEvents(int button, int action, int mods) {
+  ImGuiIO &io = ImGui::GetIO();
+  if (button >= 0 && button < ImGuiMouseButton_COUNT) {
+    io.AddMouseButtonEvent(button, action == GLFW_PRESS);
+  }
+  // Check if ImGui is handling a mouse event
+  if (io.WantCaptureMouse) {
+    return;
+  }
+
+  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+    mMouseLock = !mMouseLock;
+  }
+
+  if (mMouseLock) {
+    glfwSetInputMode(mRenderData.rdWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    if (glfwRawMouseMotionSupported()) {
+      glfwSetInputMode(mRenderData.rdWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    }
+    else {
+      glfwSetInputMode(mRenderData.rdWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+  }
+}
+
+void OGLRenderer::handleMousePositionEvents(double xPos, double yPos) {
+  ImGuiIO &io = ImGui::GetIO();
+  io.AddMousePosEvent((float)xPos, (float)yPos);
+  if (io.WantCaptureMouse) {
+    return;
+  }
+
+  int mouseMoveRelX = static_cast<int>(xPos) - mMouseXPos;
+  int mouseMoveRelY = static_cast<int>(yPos) - mMouseYPos;
+
+  if (mMouseLock) {
+    mRenderData.rdViewAzimuth += mouseMoveRelX / 10.0;
+
+    // Add 360 degree limits to Azimuth
+    if (mRenderData.rdViewAzimuth < 0.0) {
+      mRenderData.rdViewAzimuth += 360.0;
+    }
+    if (mRenderData.rdViewAzimuth >= 360.0) {
+      mRenderData.rdViewAzimuth -= 360.0;
+    }
+
+    mRenderData.rdViewElevation -= mouseMoveRelY / 10.0;
+
+    // Add (-89, 89) degree limits to Elevation
+    if (mRenderData.rdViewElevation > 89.0) {
+      mRenderData.rdViewElevation > 89.0;
+    }
+    if (mRenderData.rdViewElevation < -89.0) {
+      mRenderData.rdViewElevation = -89.0;
+    }
+
+    mMouseXPos = static_cast<int>(xPos);
+    mMouseYPos = static_cast<int>(yPos);
+  }
 }

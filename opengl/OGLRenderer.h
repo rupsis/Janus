@@ -12,10 +12,14 @@
 #include "Framebuffer.h"
 #include "Shader.h"
 #include "Texture.h"
-#include "Timer.h"
+
 #include "UniformBuffer.h"
 #include "UserInterface.h"
 #include "VertexBuffer.h"
+
+/* Tools */
+#include "Camera.h"
+#include "Timer.h"
 
 #include "OGLRenderData.h"
 
@@ -31,6 +35,10 @@ class OGLRenderer {
 
   /* Key Handlers. */
   void handleKeyEvents(int key, int scancode, int action, int mods);
+
+  /* Mouse Handlers. */
+  void handleMouseButtonEvents(int button, int action, int mods);
+  void handleMousePositionEvents(double xPos, double yPos);
 
  private:
   OGLRenderData mRenderData{};
@@ -53,4 +61,10 @@ class OGLRenderer {
   glm::mat4 mProjectionMatrix = glm::mat4(1.0f);
 
   Timer mUIGenerateTimer{};
+  Camera mCamera{};
+
+  /* Mouse values. */
+  bool mMouseLock = false;
+  int mMouseXPos = 0;
+  int mMouseYPos = 0;
 };

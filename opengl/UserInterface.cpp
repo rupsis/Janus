@@ -9,6 +9,7 @@ void UserInterface::init(OGLRenderData &renderData) {
   ImGui_ImplGlfw_InitForOpenGL(renderData.rdWindow, true);
   const char *glslVersion = "#version 460 core";
   ImGui_ImplOpenGL3_Init(glslVersion);
+  ImGui::StyleColorsDark();
 }
 
 void UserInterface::cleanup() {
@@ -47,6 +48,18 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   ImGui::Text("ms");
   ImGui::Separator();
 
+  ImGui::Text("Field of View");
+  ImGui::SameLine();
+  ImGui::SliderInt("##FOV", &renderData.rdFieldOfView, 40, 150);
+
+  ImGui::Text("View Azimuth:");
+  ImGui::SameLine();
+  ImGui::Text("%s", std::to_string(renderData.rdViewAzimuth).c_str());
+  ImGui::Text("View Elevation:");
+  ImGui::SameLine();
+  ImGui::Text("%s", std::to_string(renderData.rdViewElevation).c_str());
+  ImGui::Separator();
+
   ImGui::Text("Triangles:");
   ImGui::SameLine();
   ImGui::Text("%s", std::to_string(renderData.rdTriangleCount).c_str());
@@ -62,6 +75,7 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   ImGui::Text("ImGui Window Position:");
   ImGui::SameLine();
   ImGui::Text("%s", imgWindowPos.c_str());
+  ImGui::Separator();
 
   static bool checkBoxChecked = false;
   ImGui::Checkbox("Check Me", &checkBoxChecked);
@@ -84,10 +98,6 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   else {
     ImGui::Text("Changed Shader");
   }
-
-  ImGui::Text("Field of View");
-  ImGui::SameLine();
-  ImGui::SliderInt("##FOV", &renderData.rdFieldOfView, 40, 150);
 
   ImGui::End();
 }

@@ -32,4 +32,8 @@ struct OGLRenderData {
 
   bool rdUseChangedShader = false;
   int rdFieldOfView = 90;
+
+  // Camera info
+  float rdViewAzimuth = 320.0f;
+  float rdViewElevation = -15.0f;
 };
