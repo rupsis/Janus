@@ -4,13 +4,13 @@
 #include "OGLRenderer.h"
 
 OGLRenderer::OGLRenderer(GLFWwindow *window) {
-  mWindow = window;
+  mRenderData.rdWindow = window;
 }
 
 bool OGLRenderer::init(unsigned int width, unsigned int height) {
   /* required for perspective */
-  mWidth = width;
-  mHeight = height;
+  mRenderData.rdWidth = width;
+  mRenderData.rdHeight = height;
 
   Logger::log(1, "%s: OpenGL Render Inti \n", __FUNCTION__);
   // Initialize OpenGL via Glad.
@@ -44,6 +44,8 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
     return false;
   }
 
+  mUserInterface.init(mRenderData);
+
   return true;
 }
 
@@ -54,12 +56,16 @@ void OGLRenderer::setSize(unsigned int width, unsigned int height) {
 
 void OGLRenderer::uploadData(OGLMesh vertexData) {
   Logger::log(1, "%s: OpenGL Render uploadData \n", __FUNCTION__);
-  mTriangleCount = vertexData.vertices.size();
+  mRenderData.rdTriangleCount = vertexData.vertices.size();
   mVertexBuffer.uploadData(vertexData);
 }
 
 void OGLRenderer::draw() {
   Logger::log(1, "%s: OpenGL Render draw \n", __FUNCTION__);
+
+  static float prevFrameStartTime = 0.0f;
+  float frameStartTime = glfwGetTime();
+
   // Bind buffer to let us receive vertex data.
   mFramebuffer.bind();
   glClearColor(0.1f, 0.1f, 0.1f, 0.1f);
@@ -70,15 +76,18 @@ void OGLRenderer::draw() {
   glm::vec3 cameraLookAtPosition = glm::vec3(0.0f, 0.0f, 0.0f);
   glm::vec3 cameraUpVector = glm::vec3(0.0f, 1.0f, 0.0f);
 
-  mProjectionMatrix = glm::perspective(
-      glm::radians(90.0f), static_cast<float>(mWidth) / static_cast<float>(mHeight), 0.1f, 100.f);
+  mProjectionMatrix = glm::perspective(glm::radians(static_cast<float>(mRenderData.rdFieldOfView)),
+                                       static_cast<float>(mRenderData.rdWidth) /
+                                           static_cast<float>(mRenderData.rdHeight),
+                                       0.1f,
+                                       100.f);
 
   float t = glfwGetTime();
 
   glm::mat4 view = glm::mat4(1.0);
 
   // draw triangle from buffer
-  if (mUseChangedShader) {
+  if (mRenderData.rdUseChangedShader) {
     glm::vec3 offset = glm::vec3(0.0, 0.0, -1.0);
     view = glm::rotate(glm::mat4(1.0f), -t, glm::vec3(0.0f, 0.0f, 1.0f) * offset);
     mChangedShader.use();
@@ -92,14 +101,24 @@ void OGLRenderer::draw() {
 
   mTex.bind();
   mVertexBuffer.bind();
-  mVertexBuffer.draw(GL_TRIANGLES, 0, mTriangleCount);
+  mVertexBuffer.draw(GL_TRIANGLES, 0, mRenderData.rdTriangleCount);
   mVertexBuffer.unbind();
   mTex.unbind();
   mFramebuffer.unbind();
   mFramebuffer.drawToScreen();
+
+  mUIGenerateTimer.start();
+  mUserInterface.createFrame(mRenderData);
+  mRenderData.rdUIGenerateTime = mUIGenerateTimer.stop();
+  mUserInterface.render();
+
+  //  Calculate the FPS
+  mRenderData.rdFrameTime = frameStartTime - prevFrameStartTime;
+  prevFrameStartTime = frameStartTime;
 }
 
 void OGLRenderer::cleanup() {
+  mUserInterface.cleanup();
   mBasicShader.cleanup();
   mChangedShader.cleanup();
   mTex.cleanup();
@@ -109,9 +128,4 @@ void OGLRenderer::cleanup() {
 
 void OGLRenderer::handleKeyEvents(int key, int scancode, int action, int mods) {
   Logger::log(1, "%s: Render key handle event \n", __FUNCTION__);
-
-  if (glfwGetKey(mWindow, GLFW_KEY_SPACE) == GLFW_PRESS) {
-    Logger::log(1, "%s: shader change key handle event \n", __FUNCTION__);
-    mUseChangedShader = !mUseChangedShader;
-  }
 }

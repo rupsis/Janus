@@ -12,7 +12,9 @@
 #include "Framebuffer.h"
 #include "Shader.h"
 #include "Texture.h"
+#include "Timer.h"
 #include "UniformBuffer.h"
+#include "UserInterface.h"
 #include "VertexBuffer.h"
 
 #include "OGLRenderData.h"
@@ -31,6 +33,9 @@ class OGLRenderer {
   void handleKeyEvents(int key, int scancode, int action, int mods);
 
  private:
+  OGLRenderData mRenderData{};
+  UserInterface mUserInterface{};
+
   /* Shaders. */
   Shader mBasicShader{};
   Shader mChangedShader{};
@@ -43,12 +48,9 @@ class OGLRenderer {
   VertexBuffer mVertexBuffer{};
   UniformBuffer mUniformBuffer{};
 
-  GLFWwindow *mWindow = nullptr;
-  int mTriangleCount = 0;
-  bool mUseChangedShader = false;
-  int mWidth = 0;
-  int mHeight = 0;
-
+  /* UniformBuffer Data. */
   glm::mat4 mViewMatrix = glm::mat4(1.0f);
   glm::mat4 mProjectionMatrix = glm::mat4(1.0f);
+
+  Timer mUIGenerateTimer{};
 };
