@@ -19,5 +19,5 @@ glm::mat4 Camera::getViewMatrix(OGLRenderData &renderData) {
       -cosAzim * cosElev));
 
   // Return 4x4 lookat matrix
-  return glm::lookAt(mWorldPos, mWorldUpVector, mWorldPos + mViewDirection);
+  return glm::lookAt(mWorldPos, mWorldPos + mViewDirection, mWorldUpVector);
 }
