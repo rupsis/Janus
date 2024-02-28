@@ -214,11 +214,11 @@ void OGLRenderer::handleMovementKeys() {
 
   mRenderData.rdMoveRight = 0;
 
-  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_A) == GLFW_PRESS) {
+  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_D) == GLFW_PRESS) {
     mRenderData.rdMoveRight += 1;
   }
-  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_D) == GLFW_PRESS) {
-    mRenderData.rdMoveForward -= 1;
+  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_A) == GLFW_PRESS) {
+    mRenderData.rdMoveRight -= 1;
   }
 
   mRenderData.rdMoveUp = 0;
