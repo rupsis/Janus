@@ -64,8 +64,13 @@ void OGLRenderer::uploadData(OGLMesh vertexData) {
 void OGLRenderer::draw() {
   Logger::log(1, "%s: OpenGL Render draw \n", __FUNCTION__);
 
+  double tickTime = glfwGetTime();
+  mRenderData.rdTickDiff = tickTime - lastTickTime;
+
   static float prevFrameStartTime = 0.0f;
   float frameStartTime = glfwGetTime();
+
+  handleMovementKeys();
 
   // Bind buffer to let us receive vertex data.
   mFramebuffer.bind();
@@ -112,6 +117,7 @@ void OGLRenderer::draw() {
   //  Calculate the FPS
   mRenderData.rdFrameTime = frameStartTime - prevFrameStartTime;
   prevFrameStartTime = frameStartTime;
+  lastTickTime = tickTime;
 }
 
 void OGLRenderer::cleanup() {
@@ -184,7 +190,7 @@ void OGLRenderer::handleMousePositionEvents(double xPos, double yPos) {
 
     // Add (-89, 89) degree limits to Elevation
     if (mRenderData.rdViewElevation > 89.0) {
-      mRenderData.rdViewElevation > 89.0;
+      mRenderData.rdViewElevation = 89.0;
     }
     if (mRenderData.rdViewElevation < -89.0) {
       mRenderData.rdViewElevation = -89.0;
@@ -194,4 +200,33 @@ void OGLRenderer::handleMousePositionEvents(double xPos, double yPos) {
   /* save old values*/
   mMouseXPos = static_cast<int>(xPos);
   mMouseYPos = static_cast<int>(yPos);
+}
+
+void OGLRenderer::handleMovementKeys() {
+  mRenderData.rdMoveForward = 0;
+
+  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_W) == GLFW_PRESS) {
+    mRenderData.rdMoveForward += 1;
+  }
+  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_S) == GLFW_PRESS) {
+    mRenderData.rdMoveForward -= 1;
+  }
+
+  mRenderData.rdMoveRight = 0;
+
+  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_A) == GLFW_PRESS) {
+    mRenderData.rdMoveRight += 1;
+  }
+  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_D) == GLFW_PRESS) {
+    mRenderData.rdMoveForward -= 1;
+  }
+
+  mRenderData.rdMoveUp = 0;
+
+  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_E) == GLFW_PRESS) {
+    mRenderData.rdMoveUp += 1;
+  }
+  if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_Q) == GLFW_PRESS) {
+    mRenderData.rdMoveUp -= 1;
+  }
 }

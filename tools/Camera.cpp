@@ -18,6 +18,16 @@ glm::mat4 Camera::getViewMatrix(OGLRenderData &renderData) {
       // into the screen, -z is towards the screen
       -cosAzim * cosElev));
 
+  mRightDirection = glm::normalize(glm::cross(mViewDirection, mWorldUpVector));
+  mUpDirection = glm::normalize(glm::normalize(glm::cross(mRightDirection, mViewDirection)));
+
+  renderData.rdCameraWorldPosition +=
+      (renderData.rdMoveForward * renderData.rdTickDiff * mViewDirection) +
+      (renderData.rdMoveRight * renderData.rdTickDiff * mRightDirection) +
+      (renderData.rdMoveUp * renderData.rdTickDiff * mUpDirection);
+
   // Return 4x4 lookat matrix
-  return glm::lookAt(mWorldPos, mWorldPos + mViewDirection, mWorldUpVector);
+  return glm::lookAt(renderData.rdCameraWorldPosition,
+                     renderData.rdCameraWorldPosition + mViewDirection,
+                     mWorldUpVector);
 }

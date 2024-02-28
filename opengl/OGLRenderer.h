@@ -41,6 +41,8 @@ class OGLRenderer {
   void handleMousePositionEvents(double xPos, double yPos);
 
  private:
+  void handleMovementKeys();
+
   OGLRenderData mRenderData{};
   UserInterface mUserInterface{};
 
@@ -67,4 +69,7 @@ class OGLRenderer {
   bool mMouseLock = false;
   int mMouseXPos = 0;
   int mMouseYPos = 0;
+
+  // Difference between current & previous draw() calls
+  double lastTickTime = 0.0;
 };

@@ -1,6 +1,12 @@
 #include "UserInterface.h"
+
+#include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+
 #include <string>
 
 void UserInterface::init(OGLRenderData &renderData) {
@@ -48,9 +54,9 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   ImGui::Text("ms");
   ImGui::Separator();
 
-  ImGui::Text("Field of View");
+  ImGui::Text("Camera Position:");
   ImGui::SameLine();
-  ImGui::SliderInt("##FOV", &renderData.rdFieldOfView, 40, 150);
+  ImGui::Text("%s", glm::to_string(renderData.rdCameraWorldPosition).c_str());
 
   ImGui::Text("View Azimuth:");
   ImGui::SameLine();
@@ -98,6 +104,11 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   else {
     ImGui::Text("Changed Shader");
   }
+
+  ImGui::Separator();
+  ImGui::Text("Field of View");
+  ImGui::SameLine();
+  ImGui::SliderInt("##FOV", &renderData.rdFieldOfView, 40, 150);
 
   ImGui::End();
 }
