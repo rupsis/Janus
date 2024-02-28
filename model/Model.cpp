@@ -13,9 +13,9 @@ void Model::init() {
 
   mVertexData.vertices[6].position = glm::vec3(0.5f, -0.5f, 0.5f);
   mVertexData.vertices[7].position = glm::vec3(0.5f, 0.5f, -0.5f);
-  mVertexData.vertices[8].position = glm::vec3(0.5f, -0.5f, 0.5f);
+  mVertexData.vertices[8].position = glm::vec3(0.5f, 0.5f, 0.5f);
   mVertexData.vertices[9].position = glm::vec3(0.5f, -0.5f, 0.5f);
-  mVertexData.vertices[10].position = glm::vec3(0.5f, 0.5f, 0.5f);
+  mVertexData.vertices[10].position = glm::vec3(0.5f, -0.5f, 0.5f);
   mVertexData.vertices[11].position = glm::vec3(0.5f, 0.5f, -0.5f);
 
   mVertexData.vertices[0].color = glm::vec3(0.0f, 0.0f, 1.0f);
