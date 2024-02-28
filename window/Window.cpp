@@ -37,11 +37,6 @@ bool Window::init(unsigned int width, unsigned int height, std::string title) {
 
   // Bind key events to our render to allow switching between shaders
 
-  // glfwSetMouseButtonCallback(mWindow, [](GLFWwindow *win, int button, int action, int mods) {
-  //   auto thisWindow = static_cast<Window *>(glfwGetWindowUserPointer(win));
-  //   thisWindow->handleMouseButtonEvents(button, action, mods);
-  // });
-
   glfwMakeContextCurrent(mWindow);
 
   mRenderer = std::make_unique<OGLRenderer>(mWindow);
@@ -60,6 +55,16 @@ bool Window::init(unsigned int width, unsigned int height, std::string title) {
   glfwSetKeyCallback(mWindow, [](GLFWwindow *win, int key, int scancode, int action, int mods) {
     auto renderer = static_cast<OGLRenderer *>(glfwGetWindowUserPointer(win));
     renderer->handleKeyEvents(key, scancode, action, mods);
+  });
+
+  glfwSetMouseButtonCallback(mWindow, [](GLFWwindow *win, int button, int action, int mods) {
+    auto renderer = static_cast<OGLRenderer *>(glfwGetWindowUserPointer(win));
+    renderer->handleMouseButtonEvents(button, action, mods);
+  });
+
+  glfwSetCursorPosCallback(mWindow, [](GLFWwindow *win, double xPos, double yPos) {
+    auto renderer = static_cast<OGLRenderer *>(glfwGetWindowUserPointer(win));
+    renderer->handleMousePositionEvents(xPos, yPos);
   });
 
   mModel = std::make_unique<Model>();
