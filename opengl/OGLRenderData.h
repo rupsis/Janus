@@ -44,4 +44,6 @@ struct OGLRenderData {
   int rdMoveUp = 0;
 
   float rdTickDiff = 0.0f;
+
+  unsigned int rdGltfTriangleCount = 0;
 };

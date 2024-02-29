@@ -13,6 +13,7 @@ file(GLOB SOURCES
     opengl/*.cpp
     model/*.cpp
     imgui/*.cpp
+    tinygltf/*.cc
 )
 
 find_package(glfw3 REQUIRED)
@@ -21,6 +22,6 @@ find_package(glm REQUIRED)
 
 add_executable(Janus ${SOURCES})
 
-include_directories(${GLFW3_INCLUDE_DIR} include src window tools opengl model imgui)
+include_directories(${GLFW3_INCLUDE_DIR} include src window tools opengl model imgui tinygltf)
 
 target_link_libraries(Janus PRIVATE glfw OpenGL::GL)
