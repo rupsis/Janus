@@ -49,6 +49,11 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
     return false;
   }
 
+  /* Enable backface culling and depth test. */
+  glEnable(GL_CULL_FACE);
+  glEnable(GL_DEPTH_TEST);
+  glLineWidth(3.0);
+
   mGltfModel = std::make_shared<GltfModel>();
   std::string modelFilename = "assets/Woman.gltf";
   std::string modelTexFilename = "textures/Woman.png";
@@ -100,8 +105,6 @@ void OGLRenderer::draw() {
                                            static_cast<float>(mRenderData.rdHeight),
                                        0.1f,
                                        100.f);
-
-  glm::mat4 model = glm::mat4(1.0);
 
   // draw triangle from buffer
   if (mRenderData.rdUseChangedShader) {

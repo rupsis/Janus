@@ -9,6 +9,12 @@
 
 #include <string>
 
+/* UI forward declaration methods. */
+static void renderInfo(OGLRenderData &renderData);
+static void renderTimers(OGLRenderData &renderData);
+static void renderCamera(OGLRenderData &renderData);
+static void renderChangeShaders(OGLRenderData &renderData);
+
 void UserInterface::init(OGLRenderData &renderData) {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -33,7 +39,6 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   ImGui::SetNextWindowBgAlpha(0.8f);
   ImGui::Begin("Control", nullptr, imguiWindowFlags);
 
-  // TODO make it's own method?
   static float newFps = 0.0f;
   // Avoid division by 0
   if (renderData.rdFrameTime > 0.0) {
@@ -47,69 +52,13 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   ImGui::Text("%s", std::to_string(framesPerSecond).c_str());
   ImGui::Separator();
 
-  ImGui::Text("UI Generation Time:");
-  ImGui::SameLine();
-  ImGui::Text("%s", std::to_string(renderData.rdUIGenerateTime).c_str());
-  ImGui::SameLine();
-  ImGui::Text("ms");
-  ImGui::Separator();
+  renderInfo(renderData);
 
-  ImGui::Text("Camera Position:");
-  ImGui::SameLine();
-  ImGui::Text("%s", glm::to_string(renderData.rdCameraWorldPosition).c_str());
+  renderTimers(renderData);
 
-  ImGui::Text("View Azimuth:");
-  ImGui::SameLine();
-  ImGui::Text("%s", std::to_string(renderData.rdViewAzimuth).c_str());
-  ImGui::Text("View Elevation:");
-  ImGui::SameLine();
-  ImGui::Text("%s", std::to_string(renderData.rdViewElevation).c_str());
-  ImGui::Separator();
+  renderCamera(renderData);
 
-  ImGui::Text("Triangles:");
-  ImGui::SameLine();
-  ImGui::Text("%s",
-              std::to_string(renderData.rdTriangleCount + renderData.rdGltfTriangleCount).c_str());
-
-  std::string windowDims = std::to_string(renderData.rdHeight) + "x" +
-                           std::to_string(renderData.rdWidth);
-  ImGui::Text("Window Dimensions:");
-  ImGui::SameLine();
-  ImGui::Text("%s", windowDims.c_str());
-
-  std::string imgWindowPos = std::to_string(static_cast<int>(ImGui::GetWindowPos().x)) + "/" +
-                             std::to_string(static_cast<int>(ImGui::GetWindowPos().y));
-  ImGui::Text("ImGui Window Position:");
-  ImGui::SameLine();
-  ImGui::Text("%s", imgWindowPos.c_str());
-  ImGui::Separator();
-
-  static bool checkBoxChecked = false;
-  ImGui::Checkbox("Check Me", &checkBoxChecked);
-
-  if (checkBoxChecked) {
-    ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
-    ImGui::Text("Yes");
-    ImGui::PopStyleColor();
-  }
-
-  if (ImGui::Button("Toggle Shader")) {
-    renderData.rdUseChangedShader = !renderData.rdUseChangedShader;
-  }
-
-  ImGui::SameLine();
-  if (!renderData.rdUseChangedShader) {
-    ImGui::Text("Basic Shader");
-  }
-  else {
-    ImGui::Text("Changed Shader");
-  }
-
-  ImGui::Separator();
-  ImGui::Text("Field of View");
-  ImGui::SameLine();
-  ImGui::SliderInt("##FOV", &renderData.rdFieldOfView, 40, 150);
+  renderChangeShaders(renderData);
 
   ImGui::End();
 }
@@ -117,4 +66,75 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
 void UserInterface::render() {
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+/* UI Sections. */
+static void renderInfo(OGLRenderData &renderData) {
+  if (ImGui::CollapsingHeader("Info")) {
+    ImGui::Text("Triangles:");
+    ImGui::SameLine();
+    ImGui::Text(
+        "%s", std::to_string(renderData.rdTriangleCount + renderData.rdGltfTriangleCount).c_str());
+
+    std::string windowDims = std::to_string(renderData.rdHeight) + "x" +
+                             std::to_string(renderData.rdWidth);
+    ImGui::Text("Window Dimensions:");
+    ImGui::SameLine();
+    ImGui::Text("%s", windowDims.c_str());
+
+    std::string imgWindowPos = std::to_string(static_cast<int>(ImGui::GetWindowPos().x)) + "/" +
+                               std::to_string(static_cast<int>(ImGui::GetWindowPos().y));
+    ImGui::Text("ImGui Window Position:");
+    ImGui::SameLine();
+    ImGui::Text("%s", imgWindowPos.c_str());
+    ImGui::Separator();
+  }
+}
+
+static void renderTimers(OGLRenderData &renderData) {
+  if (ImGui::CollapsingHeader("Timers")) {
+    ImGui::Text("UI Generation Time:");
+    ImGui::SameLine();
+    ImGui::Text("%s", std::to_string(renderData.rdUIGenerateTime).c_str());
+    ImGui::SameLine();
+    ImGui::Text("ms");
+    ImGui::Separator();
+  }
+}
+
+static void renderCamera(OGLRenderData &renderData) {
+  if (ImGui::CollapsingHeader("Camera")) {
+    ImGui::Text("Camera Position:");
+    ImGui::SameLine();
+    ImGui::Text("%s", glm::to_string(renderData.rdCameraWorldPosition).c_str());
+
+    ImGui::Text("View Azimuth:");
+    ImGui::SameLine();
+    ImGui::Text("%s", std::to_string(renderData.rdViewAzimuth).c_str());
+    ImGui::Text("View Elevation:");
+    ImGui::SameLine();
+    ImGui::Text("%s", std::to_string(renderData.rdViewElevation).c_str());
+    ImGui::Separator();
+
+    ImGui::Separator();
+    ImGui::Text("Field of View");
+    ImGui::SameLine();
+    ImGui::SliderInt("##FOV", &renderData.rdFieldOfView, 40, 150);
+  }
+}
+
+static void renderChangeShaders(OGLRenderData &renderData) {
+  if (ImGui::CollapsingHeader("Shaders")) {
+    if (ImGui::Button("Toggle Shader")) {
+      renderData.rdUseChangedShader = !renderData.rdUseChangedShader;
+    }
+
+    ImGui::SameLine();
+    if (!renderData.rdUseChangedShader) {
+      ImGui::Text("Basic Shader");
+    }
+    else {
+      ImGui::Text("Changed Shader");
+    }
+  }
 }
