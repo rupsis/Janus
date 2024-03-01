@@ -87,7 +87,6 @@ static void renderInfo(OGLRenderData &renderData) {
     ImGui::Text("ImGui Window Position:");
     ImGui::SameLine();
     ImGui::Text("%s", imgWindowPos.c_str());
-    ImGui::Separator();
   }
 }
 
@@ -98,7 +97,6 @@ static void renderTimers(OGLRenderData &renderData) {
     ImGui::Text("%s", std::to_string(renderData.rdUIGenerateTime).c_str());
     ImGui::SameLine();
     ImGui::Text("ms");
-    ImGui::Separator();
   }
 }
 
@@ -116,7 +114,6 @@ static void renderCamera(OGLRenderData &renderData) {
     ImGui::Text("%s", std::to_string(renderData.rdViewElevation).c_str());
     ImGui::Separator();
 
-    ImGui::Separator();
     ImGui::Text("Field of View");
     ImGui::SameLine();
     ImGui::SliderInt("##FOV", &renderData.rdFieldOfView, 40, 150);
