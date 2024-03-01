@@ -144,19 +144,29 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
     return false;
   }
 
-  /* build node tree from model.*/
-  int rootNode = mModel->scenes.at(0).nodes.at(0);
-  mRootNode = GltfNode::createRoot(rootNode);
-  getNodeData(mRootNode, glm::mat4(1.0f));
-  getNodes(mRootNode);
-  mRootNode->printTree();
-
   // Once model is loaded, create vertex buffer & index buffer.
   glGenVertexArrays(1, &mVAO);
   glBindVertexArray(mVAO);
   createVertexBuffers();
   createIndexBuffer();
   glBindVertexArray(0);
+
+  /* extract joints, weights, and invers bind matrices*/
+  // getJointData();
+  // getWeightData();
+  // getInvBindMatrices();
+
+  /* build node tree from model.*/
+  int nodeCount = mModel->nodes.size();
+  int rootNode = mModel->scenes.at(0).nodes.at(0);
+
+  Logger::log(1, "%s: model has %i nodes, root nodes is %i", __FUNCTION__, nodeCount, rootNode);
+
+  mRootNode = GltfNode::createRoot(rootNode);
+  getNodeData(mRootNode, glm::mat4(1.0f));
+  getNodes(mRootNode);
+
+  mRootNode->printTree();
 
   renderData.rdTriangleCount = getTriangleCount();
   return true;
