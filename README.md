@@ -1,8 +1,9 @@
 # Janus
 
 ## Dependencies
-`brew install glfw`
-`brew install glm`
+- glfw
+- glm
+- OpenGL 4.6
 
 ## Building
 ```
