@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "GltfModel.h"
 #include "Logger.h"
 
@@ -141,6 +144,13 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
     return false;
   }
 
+  /* build node tree from model.*/
+  int rootNode = mModel->scenes.at(0).nodes.at(0);
+  mRootNode = GltfNode::createRoot(rootNode);
+  getNodeData(mRootNode, glm::mat4(1.0f));
+  getNodes(mRootNode);
+  mRootNode->printTree();
+
   // Once model is loaded, create vertex buffer & index buffer.
   glGenVertexArrays(1, &mVAO);
   glBindVertexArray(mVAO);
@@ -181,4 +191,45 @@ void GltfModel::draw() {
 
   glBindVertexArray(0);
   mTex.unbind();
+}
+
+void GltfModel::getNodes(std::shared_ptr<GltfNode> treeNode) {
+  int nodeNum = treeNode->getNodeNum();
+  std::vector<int> childNodes = mModel->nodes.at(nodeNum).children;
+
+  /* Remove any children nodes with skin/mesh metadata.*/
+  auto removed = std::remove_if(childNodes.begin(), childNodes.end(), [&](int num) {
+    return mModel->nodes.at(num).skin != -1;
+  });
+  childNodes.erase(removed, childNodes.end());
+
+  treeNode->addChilds(childNodes);
+  glm::mat4 treeNodeMatrix = treeNode->getNodeMatrix();
+
+  for (auto &childNode : treeNode->getChilds()) {
+    getNodeData(childNode, treeNodeMatrix);
+    getNodes(childNode);
+  }
+}
+
+void GltfModel::getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix) {
+  int nodeNum = treeNode->getNodeNum();
+  const tinygltf::Node &node = mModel->nodes.at(nodeNum);
+  treeNode->setNodeName(node.name);
+
+  if (node.translation.size()) {
+    treeNode->setTranslation(glm::make_vec3(node.translation.data()));
+  }
+  if (node.rotation.size()) {
+    treeNode->setRotation(glm::make_quat(node.rotation.data()));
+  }
+  if (node.scale.size()) {
+    treeNode->setScale(glm::make_vec3(node.scale.data()));
+  }
+
+  treeNode->calculateLocalTRSMatrix();
+  treeNode->calculateNodeMatrix(parentNodeMatrix);
+
+  mJointMatrices.at(mNodeToJoint.at(nodeNum)) = treeNode->getNodeMatrix() *
+                                                mInverseBindMatrices.at(mNodeToJoint.at(nodeNum));
 }
