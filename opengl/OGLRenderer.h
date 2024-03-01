@@ -21,6 +21,8 @@
 #include "Camera.h"
 #include "Timer.h"
 
+#include "GltfModel.h"
+
 #include "OGLRenderData.h"
 
 class OGLRenderer {
@@ -45,6 +47,10 @@ class OGLRenderer {
 
   OGLRenderData mRenderData{};
   UserInterface mUserInterface{};
+
+  /* Model. */
+  Shader mGltfShader{};
+  std::shared_ptr<GltfModel> mGltfModel = nullptr;
 
   /* Shaders. */
   Shader mBasicShader{};

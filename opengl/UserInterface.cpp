@@ -68,7 +68,8 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
 
   ImGui::Text("Triangles:");
   ImGui::SameLine();
-  ImGui::Text("%s", std::to_string(renderData.rdTriangleCount).c_str());
+  ImGui::Text("%s",
+              std::to_string(renderData.rdTriangleCount + renderData.rdGltfTriangleCount).c_str());
 
   std::string windowDims = std::to_string(renderData.rdHeight) + "x" +
                            std::to_string(renderData.rdWidth);

@@ -45,7 +45,21 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
     return false;
   }
 
+  if (!mGltfShader.loadShaders("shader/gltf.vert", "shader/gltf.frag")) {
+    return false;
+  }
+
+  mGltfModel = std::make_shared<GltfModel>();
+  std::string modelFilename = "assets/Woman.gltf";
+  std::string modelTexFilename = "textures/Woman.png";
+
   mUserInterface.init(mRenderData);
+
+  if (!mGltfModel->loadModel(mRenderData, modelFilename, modelTexFilename)) {
+    return false;
+  }
+
+  mGltfModel->uploadIndexBuffer();
 
   return true;
 }
@@ -63,6 +77,9 @@ void OGLRenderer::uploadData(OGLMesh vertexData) {
 
 void OGLRenderer::draw() {
   Logger::log(1, "%s: OpenGL Render draw \n", __FUNCTION__);
+
+  // TODO add in the upload to VBO timer
+  mGltfModel->uploadVertexBuffers();
 
   double tickTime = glfwGetTime();
   mRenderData.rdTickDiff = tickTime - lastTickTime;
@@ -84,21 +101,16 @@ void OGLRenderer::draw() {
                                        0.1f,
                                        100.f);
 
-  float t = glfwGetTime();
-
   glm::mat4 model = glm::mat4(1.0);
 
   // draw triangle from buffer
   if (mRenderData.rdUseChangedShader) {
-    glm::vec3 offset = glm::vec3(0.0, 0.0, -1.0);
-    model = glm::rotate(glm::mat4(1.0f), -t, glm::vec3(0.0f, 0.0f, 1.0f) * offset);
     mChangedShader.use();
   }
   else {
-    model = glm::rotate(glm::mat4(1.0f), t, glm::vec3(0.0f, 0.0f, 1.0f));
     mBasicShader.use();
   }
-  mViewMatrix = mCamera.getViewMatrix(mRenderData) * model;
+  mViewMatrix = mCamera.getViewMatrix(mRenderData);
   mUniformBuffer.uploadUboData(mViewMatrix, mProjectionMatrix);
 
   mTex.bind();
@@ -106,6 +118,11 @@ void OGLRenderer::draw() {
   mVertexBuffer.draw(GL_TRIANGLES, 0, mRenderData.rdTriangleCount);
   mVertexBuffer.unbind();
   mTex.unbind();
+
+  /* draw the glTF model */
+  mGltfShader.use();
+  mGltfModel->draw();
+
   mFramebuffer.unbind();
   mFramebuffer.drawToScreen();
 
@@ -122,9 +139,14 @@ void OGLRenderer::draw() {
 
 void OGLRenderer::cleanup() {
   mUserInterface.cleanup();
+
   mBasicShader.cleanup();
   mChangedShader.cleanup();
+  mGltfShader.cleanup();
+
   mTex.cleanup();
+  mGltfModel->cleanup();
+  mGltfModel.reset();
   mVertexBuffer.cleanup();
   mFramebuffer.cleanup();
 }
