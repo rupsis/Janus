@@ -20,6 +20,7 @@ class GltfModel {
   void draw();
   void cleanup();
   void uploadVertexBuffers();
+  void applyVertexSkinning(bool enableSkinning);
   void uploadIndexBuffer();
 
  private:
@@ -28,9 +29,15 @@ class GltfModel {
   int getTriangleCount();
 
   /* Armature. */
+  void getJointData();
+  void getWeightData();
+  void getInvBindMatrices();
   void getNodes(std::shared_ptr<GltfNode> treeNode);
   void getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
 
+  // Joint data is hardcoded to the test model.
+  // Will need to check componentType field to convert
+  // the joint data to the data type used in the shader during model creation.
   std::vector<glm::tvec4<uint16_t>> mJointVec{};
   std::vector<glm::vec4> mWeightVec{};
   std::vector<glm::mat4> mInverseBindMatrices{};

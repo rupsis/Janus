@@ -116,6 +116,8 @@ void OGLRenderer::draw() {
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
   mUniformBuffer.uploadUboData(mViewMatrix, mProjectionMatrix);
 
+  mGltfModel->applyVertexSkinning(true);
+
   mTex.bind();
   mVertexBuffer.bind();
   mVertexBuffer.draw(GL_TRIANGLES, 0, mRenderData.rdTriangleCount);
