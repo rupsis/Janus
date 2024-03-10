@@ -15,15 +15,15 @@ layout(std140, binding = 0) uniform Matrices {
   mat4 projection;
 };
 
-layout(stdl140, binding = 1) uniform JointMatrices {
-  mat4 joinMat[42];
+layout(std140, binding = 1) uniform JointMatrices {
+  mat4 jointMat[42];
 }
 
 void main() {
-  mat4 skinMat = aJointWeight.x * joinMat[int(aJointNum.x)] +
-                 aJointWeight.y * joinMat[int(aJointNum.y)] +
-                 aJointWeight.z * joinMat[int(aJointNum.z)] +
-                 aJointWeight.w * joinMat[int(aJointNum.w)];
+  mat4 skinMat = aJointWeight.x * jointMat[int(aJointNum.x)] +
+                 aJointWeight.y * jointMat[int(aJointNum.y)] +
+                 aJointWeight.z * jointMat[int(aJointNum.z)] +
+                 aJointWeight.w * jointMat[int(aJointNum.w)];
 
   gl_Position = projection * view * skinMat vec4(aPos, 1.0);
   normal = aNormal;
