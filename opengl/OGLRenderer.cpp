@@ -49,6 +49,10 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
     return false;
   }
 
+  if (!mGltfGPUShader.loadShaders("shader/gltf_gpu.vert", "shader/gltf_gpu.frag")) {
+    return false;
+  }
+
   /* Enable backface culling and depth test. */
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
@@ -113,6 +117,7 @@ void OGLRenderer::draw() {
   else {
     mBasicShader.use();
   }
+
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
   mUniformBuffer.uploadUboData(mViewMatrix, mProjectionMatrix);
 
@@ -125,7 +130,13 @@ void OGLRenderer::draw() {
   mTex.unbind();
 
   /* draw the glTF model */
-  mGltfShader.use();
+  if (mRenderData.rdGPUVertexSkinning) {
+    mGltfGPUShader.use();
+  }
+  else {
+    mGltfShader.use();
+  }
+
   mGltfModel->draw();
 
   mFramebuffer.unbind();
@@ -148,6 +159,7 @@ void OGLRenderer::cleanup() {
   mBasicShader.cleanup();
   mChangedShader.cleanup();
   mGltfShader.cleanup();
+  mGltfGPUShader.cleanup();
 
   mTex.cleanup();
   mGltfModel->cleanup();

@@ -50,6 +50,7 @@ class OGLRenderer {
 
   /* Model. */
   Shader mGltfShader{};
+  Shader mGltfGPUShader{};
   std::shared_ptr<GltfModel> mGltfModel = nullptr;
 
   /* Shaders. */

@@ -133,5 +133,17 @@ static void renderChangeShaders(OGLRenderData &renderData) {
     else {
       ImGui::Text("Changed Shader");
     }
+
+    if (ImGui::Button("Toggle Skinning")) {
+      renderData.rdGPUVertexSkinning = !renderData.rdGPUVertexSkinning;
+    }
+
+    ImGui::SameLine();
+    if (!renderData.rdGPUVertexSkinning) {
+      ImGui::Text("CPU Skinning");
+    }
+    else {
+      ImGui::Text("GPU Skinning");
+    }
   }
 }
