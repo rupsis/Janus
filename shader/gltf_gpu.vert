@@ -17,7 +17,7 @@ layout(std140, binding = 0) uniform Matrices {
 
 layout(std140, binding = 1) uniform JointMatrices {
   mat4 jointMat[42];
-}
+};
 
 void main() {
   mat4 skinMat = aJointWeight.x * jointMat[int(aJointNum.x)] +
@@ -25,7 +25,7 @@ void main() {
                  aJointWeight.z * jointMat[int(aJointNum.z)] +
                  aJointWeight.w * jointMat[int(aJointNum.w)];
 
-  gl_Position = projection * view * skinMat vec4(aPos, 1.0);
+  gl_Position = projection * view * skinMat * vec4(aPos, 1.0);
   normal = aNormal;
   texCoord = aTexCoord;
 }
