@@ -34,7 +34,8 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   mVertexBuffer.init();
   Logger::log(1, "%s: vertex buffer successfully created\n", __FUNCTION__);
 
-  mUniformBuffer.init();
+  size_t uniformMatrixBufferSize = 2 * sizeof(glm::mat4);
+  mUniformBuffer.init(uniformMatrixBufferSize);
   Logger::log(1, "%s: uniform buffer successfully created\n", __FUNCTION__);
 
   if (!mBasicShader.loadShaders("shader/basic.vert", "shader/basic.frag")) {
@@ -69,6 +70,13 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   }
 
   mGltfModel->uploadIndexBuffer();
+
+  size_t modelJointMatrixBufferSize = mGltfModel->getJointMatrixSize() * sizeof(glm::mat4);
+  mGltfShaderStorageBuffer.init(modelJointMatrixBufferSize);
+  Logger::log(1,
+              "%s: glTF joint matrix shader storage buffer (size %i bytes) successfully created\n",
+              __FUNCTION__,
+              modelJointMatrixBufferSize);
 
   return true;
 }
@@ -119,7 +127,14 @@ void OGLRenderer::draw() {
   }
 
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
-  mUniformBuffer.uploadUboData(mViewMatrix, mProjectionMatrix);
+  std::vector<glm::mat4> matrixData;
+  matrixData.push_back(mViewMatrix);
+  matrixData.push_back(mProjectionMatrix);
+  mUniformBuffer.uploadUboData(matrixData, 0);
+
+  if (mRenderData.rdGPUVertexSkinning) {
+    mGltfShaderStorageBuffer.uploadSsboData(mGltfModel->getJointMatrices(), 1);
+  }
 
   mGltfModel->applyVertexSkinning(true);
 

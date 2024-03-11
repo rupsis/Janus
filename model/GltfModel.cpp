@@ -271,6 +271,14 @@ void GltfModel::getInvBindMatrices() {
               bufferView.byteLength);
 }
 
+int GltfModel::getJointMatrixSize() {
+  return mJointMatrices.size();
+}
+
+std::vector<glm::mat4> GltfModel::getJointMatrices() {
+  return mJointMatrices;
+}
+
 void GltfModel::cleanup() {
   glDeleteBuffers(mVertexVBO.size(), mVertexVBO.data());
   glDeleteBuffers(1, &mVAO);

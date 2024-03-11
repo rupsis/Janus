@@ -13,6 +13,7 @@
 #include "Shader.h"
 #include "Texture.h"
 
+#include "SharedStorageBuffer.h"
 #include "UniformBuffer.h"
 #include "UserInterface.h"
 #include "VertexBuffer.h"
@@ -64,6 +65,7 @@ class OGLRenderer {
   Framebuffer mFramebuffer{};
   VertexBuffer mVertexBuffer{};
   UniformBuffer mUniformBuffer{};
+  SharedStorageBuffer mGltfShaderStorageBuffer{};
 
   /* UniformBuffer Data. */
   glm::mat4 mViewMatrix = glm::mat4(1.0f);

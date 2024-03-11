@@ -22,6 +22,8 @@ class GltfModel {
   void uploadVertexBuffers();
   void applyVertexSkinning(bool enableSkinning);
   void uploadIndexBuffer();
+  int getJointMatrixSize();
+  std::vector<glm::mat4> getJointMatrices();
 
  private:
   void createVertexBuffers();
