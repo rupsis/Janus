@@ -7,8 +7,9 @@
 void GltfModel::createVertexBuffers() {
   // Model assumes only 1 mesh.
   const tinygltf::Primitive &primitives = mModel->meshes.at(0).primitives.at(0);
-
   mVertexVBO.resize(primitives.attributes.size());
+  mAttribAccessors.resize(primitives.attributes.size());
+
   for (const auto &attrib : primitives.attributes) {
     const std::string attribType = attrib.first;
     const int accessorNum = attrib.second;
