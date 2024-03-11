@@ -20,8 +20,9 @@ class GltfModel {
   void draw();
   void cleanup();
   void uploadVertexBuffers();
-  void applyVertexSkinning(bool enableSkinning);
+  void applyCPUVertexSkinning();
   void uploadIndexBuffer();
+  std::shared_ptr<OGLMesh> getSkeleton(bool enableSkinning);
   int getJointMatrixSize();
   std::vector<glm::mat4> getJointMatrices();
 
@@ -36,6 +37,7 @@ class GltfModel {
   void getInvBindMatrices();
   void getNodes(std::shared_ptr<GltfNode> treeNode);
   void getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
+  void getSkeletonPerNode(std::shared_ptr<GltfNode> treeNode, bool enableSkinning);
 
   // Joint data is hardcoded to the test model.
   // Will need to check componentType field to convert
@@ -53,10 +55,13 @@ class GltfModel {
   std::shared_ptr<GltfNode> mRootNode = nullptr;
   std::shared_ptr<tinygltf::Model> mModel = nullptr;
 
+  std::shared_ptr<OGLMesh> mSkeletonMesh = nullptr;
+
   GLuint mVAO = 0;
   std::vector<GLuint> mVertexVBO{};
   GLuint mIndexVBO = 0;
 
-  std::map<std::string, GLint> attributes = {{"POSITION", 0}, {"NORMAL", 1}, {"TEXCOORD_0", 2}};
+  std::map<std::string, GLint> attributes = {
+      {"POSITION", 0}, {"NORMAL", 1}, {"TEXCOORD_0", 2}, {"JOINTS_0", 3}, {"WEIGHTS_0", 4}};
   Texture mTex{};
 };

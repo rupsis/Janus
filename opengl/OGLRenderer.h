@@ -53,6 +53,7 @@ class OGLRenderer {
   Shader mGltfShader{};
   Shader mGltfGPUShader{};
   std::shared_ptr<GltfModel> mGltfModel = nullptr;
+  bool mModelUploadRequired = true;
 
   /* Shaders. */
   Shader mBasicShader{};

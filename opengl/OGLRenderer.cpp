@@ -96,7 +96,23 @@ void OGLRenderer::draw() {
   Logger::log(1, "%s: OpenGL Render draw \n", __FUNCTION__);
 
   // TODO add in the upload to VBO timer
-  mGltfModel->uploadVertexBuffers();
+
+  /* upload required data only when switching GPU and CPU */
+  static bool lastGPURenderState = mRenderData.rdGPUVertexSkinning;
+
+  if (lastGPURenderState != mRenderData.rdGPUVertexSkinning) {
+    mModelUploadRequired = true;
+    lastGPURenderState = mRenderData.rdGPUVertexSkinning;
+  }
+  if (mModelUploadRequired) {
+    mGltfModel->uploadVertexBuffers();
+    mModelUploadRequired = false;
+  }
+
+  if (!mRenderData.rdGPUVertexSkinning) {
+    /* glTF vertex skinning, overwrites position buffer, needs upload on every frame */
+    mGltfModel->applyCPUVertexSkinning();
+  }
 
   double tickTime = glfwGetTime();
   mRenderData.rdTickDiff = tickTime - lastTickTime;
@@ -135,8 +151,6 @@ void OGLRenderer::draw() {
   if (mRenderData.rdGPUVertexSkinning) {
     mGltfShaderStorageBuffer.uploadSsboData(mGltfModel->getJointMatrices(), 1);
   }
-
-  mGltfModel->applyVertexSkinning(true);
 
   mTex.bind();
   mVertexBuffer.bind();

@@ -106,27 +106,6 @@ void GltfModel::uploadVertexBuffers() {
   }
 }
 
-void GltfModel::applyVertexSkinning(bool enableSkinning) {
-  const tinygltf::Accessor &accessor = mModel->accessors.at(mAttribAccessors.at(0));
-  const tinygltf::BufferView &bufferView = mModel->bufferViews.at(accessor.bufferView);
-  const tinygltf::Buffer &buffer = mModel->buffers.at(bufferView.buffer);
-
-  std::memcpy(
-      mAlteredPositions.data(), &buffer.data.at(0) + bufferView.byteOffset, bufferView.byteLength);
-
-  if (enableSkinning) {
-    for (int i = 0; i < mJointVec.size(); ++i) {
-      glm::ivec4 jointIndex = glm::make_vec4(mJointVec.at(i));
-      glm::vec4 weightIndex = glm::make_vec4(mWeightVec.at(i));
-      glm::mat4 skinMat = weightIndex.x * mJointMatrices.at(jointIndex.x) +
-                          weightIndex.y * mJointMatrices.at(jointIndex.y) +
-                          weightIndex.z * mJointMatrices.at(jointIndex.z) +
-                          weightIndex.w * mJointMatrices.at(jointIndex.w);
-      mAlteredPositions.at(i) = skinMat * glm::vec4(mAlteredPositions.at(i), 1.0f);
-    }
-  }
-}
-
 void GltfModel::uploadIndexBuffer() {
   const tinygltf::Primitive &primitives = mModel->meshes.at(0).primitives.at(0);
   const tinygltf::Accessor &indexAccessor = mModel->accessors.at(primitives.indices);
@@ -140,10 +119,26 @@ void GltfModel::uploadIndexBuffer() {
                GL_STATIC_DRAW);
 }
 
-int GltfModel::getTriangleCount() {
-  const tinygltf::Primitive &primitives = mModel->meshes.at(0).primitives.at(0);
-  const tinygltf::Accessor &indexAccessor = mModel->accessors.at(primitives.indices);
-  return indexAccessor.count;
+void GltfModel::applyCPUVertexSkinning() {
+  const tinygltf::Accessor &accessor = mModel->accessors.at(mAttribAccessors.at(0));
+  const tinygltf::BufferView &bufferView = mModel->bufferViews.at(accessor.bufferView);
+  const tinygltf::Buffer &buffer = mModel->buffers.at(bufferView.buffer);
+
+  std::memcpy(
+      mAlteredPositions.data(), &buffer.data.at(0) + bufferView.byteOffset, bufferView.byteLength);
+
+  for (int i = 0; i < mJointVec.size(); ++i) {
+    glm::ivec4 jointIndex = glm::make_vec4(mJointVec.at(i));
+    glm::vec4 weightIndex = glm::make_vec4(mWeightVec.at(i));
+    glm::mat4 skinMat = weightIndex.x * mJointMatrices.at(jointIndex.x) +
+                        weightIndex.y * mJointMatrices.at(jointIndex.y) +
+                        weightIndex.z * mJointMatrices.at(jointIndex.z) +
+                        weightIndex.w * mJointMatrices.at(jointIndex.w);
+    mAlteredPositions.at(i) = skinMat * glm::vec4(mAlteredPositions.at(i), 1.0f);
+  }
+  glBindBuffer(GL_ARRAY_BUFFER, mVertexVBO.at(0));
+  glBufferData(GL_ARRAY_BUFFER, bufferView.byteLength, mAlteredPositions.data(), GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 bool GltfModel::loadModel(OGLRenderData &renderData,
@@ -203,6 +198,13 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
 
   renderData.rdTriangleCount = getTriangleCount();
   return true;
+}
+
+/* Getters. */
+int GltfModel::getTriangleCount() {
+  const tinygltf::Primitive &primitives = mModel->meshes.at(0).primitives.at(0);
+  const tinygltf::Accessor &indexAccessor = mModel->accessors.at(primitives.indices);
+  return indexAccessor.count;
 }
 
 void GltfModel::getJointData() {
@@ -279,37 +281,6 @@ std::vector<glm::mat4> GltfModel::getJointMatrices() {
   return mJointMatrices;
 }
 
-void GltfModel::cleanup() {
-  glDeleteBuffers(mVertexVBO.size(), mVertexVBO.data());
-  glDeleteBuffers(1, &mVAO);
-  glDeleteBuffers(1, &mIndexVBO);
-  mTex.cleanup();
-  mModel.reset();
-}
-
-void GltfModel::draw() {
-  const tinygltf::Primitive &primitives = mModel->meshes.at(0).primitives.at(0);
-  const tinygltf::Accessor &indexAccessor = mModel->accessors.at(primitives.indices);
-
-  GLuint drawMode = GL_TRIANGLES;
-  switch (primitives.mode) {
-    case TINYGLTF_MODE_TRIANGLES:
-      drawMode = GL_TRIANGLES;
-      break;
-    default:
-      Logger::log(1, "%s error: unknown draw mode %i\n", __FUNCTION__, drawMode);
-      break;
-  }
-
-  mTex.bind();
-  glBindVertexArray(mVAO);
-  // We have indexed geometry, instead of array data
-  glDrawElements(drawMode, indexAccessor.count, indexAccessor.componentType, nullptr);
-
-  glBindVertexArray(0);
-  mTex.unbind();
-}
-
 void GltfModel::getNodes(std::shared_ptr<GltfNode> treeNode) {
   int nodeNum = treeNode->getNodeNum();
   std::vector<int> childNodes = mModel->nodes.at(nodeNum).children;
@@ -349,4 +320,80 @@ void GltfModel::getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parent
 
   mJointMatrices.at(mNodeToJoint.at(nodeNum)) = treeNode->getNodeMatrix() *
                                                 mInverseBindMatrices.at(mNodeToJoint.at(nodeNum));
+}
+
+std::shared_ptr<OGLMesh> GltfModel::getSkeleton(bool enableSkinning) {
+  mSkeletonMesh->vertices.resize(mModel->nodes.size() * 2);
+  mSkeletonMesh->vertices.clear();
+
+  /* start from Armature child */
+  getSkeletonPerNode(mRootNode->getChilds().at(0), enableSkinning);
+  return mSkeletonMesh;
+}
+
+void GltfModel::getSkeletonPerNode(std::shared_ptr<GltfNode> treeNode, bool enableSkinning) {
+  glm::vec3 parentPos = glm::vec3(0.0f);
+  if (enableSkinning) {
+    parentPos = glm::vec3(treeNode->getNodeMatrix() * glm::vec4(1.0f));
+  }
+  else {
+    glm::mat4 bindMatrix = glm::inverse(
+        mInverseBindMatrices.at(mNodeToJoint.at(treeNode->getNodeNum())));
+    parentPos = bindMatrix * treeNode->getNodeMatrix() * glm::vec4(1.0f);
+  }
+  OGLVertex parentVertex;
+  parentVertex.position = parentPos;
+  parentVertex.color = glm::vec3(0.0f, 1.0f, 1.0f);
+
+  for (const auto &childNode : treeNode->getChilds()) {
+    glm::vec3 childPos = glm::vec3(0.0f);
+    if (enableSkinning) {
+      childPos = glm::vec3(childNode->getNodeMatrix() * glm::vec4(1.0f));
+    }
+    else {
+      glm::mat4 bindMatrix = glm::inverse(
+          mInverseBindMatrices.at(mNodeToJoint.at(childNode->getNodeNum())));
+      childPos = bindMatrix * childNode->getNodeMatrix() * glm::vec4(1.0f);
+    }
+    OGLVertex childVertex;
+    childVertex.position = childPos;
+    childVertex.color = glm::vec3(0.0f, 0.0f, 1.0f);
+    mSkeletonMesh->vertices.emplace_back(parentVertex);
+    mSkeletonMesh->vertices.emplace_back(childVertex);
+
+    getSkeletonPerNode(childNode, enableSkinning);
+  }
+}
+
+/* ------ */
+
+void GltfModel::draw() {
+  const tinygltf::Primitive &primitives = mModel->meshes.at(0).primitives.at(0);
+  const tinygltf::Accessor &indexAccessor = mModel->accessors.at(primitives.indices);
+
+  GLuint drawMode = GL_TRIANGLES;
+  switch (primitives.mode) {
+    case TINYGLTF_MODE_TRIANGLES:
+      drawMode = GL_TRIANGLES;
+      break;
+    default:
+      Logger::log(1, "%s error: unknown draw mode %i\n", __FUNCTION__, drawMode);
+      break;
+  }
+
+  mTex.bind();
+  glBindVertexArray(mVAO);
+  // We have indexed geometry, instead of array data
+  glDrawElements(drawMode, indexAccessor.count, indexAccessor.componentType, nullptr);
+
+  glBindVertexArray(0);
+  mTex.unbind();
+}
+
+void GltfModel::cleanup() {
+  glDeleteBuffers(mVertexVBO.size(), mVertexVBO.data());
+  glDeleteBuffers(1, &mVAO);
+  glDeleteBuffers(1, &mIndexVBO);
+  mTex.cleanup();
+  mModel.reset();
 }
