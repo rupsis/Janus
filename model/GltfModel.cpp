@@ -145,10 +145,12 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
                           std::string modelFilename,
                           std::string textureFilename) {
   if (!mTex.loadTexture(textureFilename, false)) {
+    Logger::log(1, "%s: texture loading failed\n", __FUNCTION__);
     return false;
   }
 
   mModel = std::make_shared<tinygltf::Model>();
+
   tinygltf::TinyGLTF gltfLoader;
   std::string loaderErrors;
   std::string loaderWarnings;
@@ -175,8 +177,11 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
   // Once model is loaded, create vertex buffer & index buffer.
   glGenVertexArrays(1, &mVAO);
   glBindVertexArray(mVAO);
+
+  /* extract position, normal, texture coords, and indices */
   createVertexBuffers();
   createIndexBuffer();
+
   glBindVertexArray(0);
 
   /* extract joints, weights, and invers bind matrices*/
@@ -193,6 +198,9 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
   mRootNode = GltfNode::createRoot(rootNode);
   getNodeData(mRootNode, glm::mat4(1.0f));
   getNodes(mRootNode);
+
+  /* get Skeleton data */
+  mSkeletonMesh = std::make_shared<OGLMesh>();
 
   mRootNode->printTree();
 
