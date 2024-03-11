@@ -1,5 +1,9 @@
 #include <algorithm>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/dual_quaternion.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include "GltfModel.h"
 #include "Logger.h"
@@ -275,6 +279,7 @@ void GltfModel::getInvBindMatrices() {
 
   mInverseBindMatrices.resize(skin.joints.size());
   mJointMatrices.resize(skin.joints.size());
+  mJointDualQuats.resize(skin.joints.size());
 
   std::memcpy(mInverseBindMatrices.data(),
               &buffer.data.at(0) + bufferView.byteOffset,
@@ -309,6 +314,7 @@ void GltfModel::getNodes(std::shared_ptr<GltfNode> treeNode) {
 }
 
 void GltfModel::getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix) {
+
   int nodeNum = treeNode->getNodeNum();
   const tinygltf::Node &node = mModel->nodes.at(nodeNum);
   treeNode->setNodeName(node.name);
@@ -328,6 +334,26 @@ void GltfModel::getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parent
 
   mJointMatrices.at(mNodeToJoint.at(nodeNum)) = treeNode->getNodeMatrix() *
                                                 mInverseBindMatrices.at(mNodeToJoint.at(nodeNum));
+
+  /* Need to decompose join matrix into components to convert to quaternions. */
+  glm::quat orientation;
+  glm::vec3 scale;
+  glm::vec3 translation;
+  glm::vec3 skew;
+  glm::vec4 perspective;
+  glm::dualquat dq;
+
+  if (glm::decompose(mJointMatrices.at(mNodeToJoint.at(nodeNum)),
+                     scale,
+                     orientation,
+                     translation,
+                     skew,
+                     perspective))
+  {
+    dq[0] = orientation;
+    dq[1] = glm::quat(0.0, translation.x, translation.y, translation.z) * orientation * 0.5f;
+    mJointDualQuats.at(mNodeToJoint.at(nodeNum)) = glm::mat2x4_cast(dq);
+  }
 }
 
 std::shared_ptr<OGLMesh> GltfModel::getSkeleton(bool enableSkinning) {

@@ -46,6 +46,7 @@ class GltfModel {
   std::vector<glm::vec4> mWeightVec{};
   std::vector<glm::mat4> mInverseBindMatrices{};
   std::vector<glm::mat4> mJointMatrices{};
+  std::vector<glm::mat2x4> mJointDualQuats{};
 
   std::vector<int> mAttribAccessors{};
   std::vector<int> mNodeToJoint{};
