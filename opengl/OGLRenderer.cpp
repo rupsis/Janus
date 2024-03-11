@@ -38,13 +38,6 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   mUniformBuffer.init(uniformMatrixBufferSize);
   Logger::log(1, "%s: uniform buffer successfully created\n", __FUNCTION__);
 
-  // if (!mBasicShader.loadShaders("shader/basic.vert", "shader/basic.frag")) {
-  //   return false;
-  // }
-
-  // if (!mChangedShader.loadShaders("shader/changed.vert", "shader/changed.frag")) {
-  //   return false;
-  // }
 
   if (!mGltfShader.loadShaders("shader/gltf.vert", "shader/gltf.frag")) {
     return false;
@@ -134,13 +127,6 @@ void OGLRenderer::draw() {
                                        0.1f,
                                        100.f);
 
-  // // draw triangle from buffer
-  // if (mRenderData.rdUseChangedShader) {
-  //   mChangedShader.use();
-  // }
-  // else {
-  //   mBasicShader.use();
-  // }
 
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
   std::vector<glm::mat4> matrixData;

@@ -122,18 +122,6 @@ static void renderCamera(OGLRenderData &renderData) {
 
 static void renderChangeShaders(OGLRenderData &renderData) {
   if (ImGui::CollapsingHeader("Shaders")) {
-    if (ImGui::Button("Toggle Shader")) {
-      renderData.rdUseChangedShader = !renderData.rdUseChangedShader;
-    }
-
-    ImGui::SameLine();
-    if (!renderData.rdUseChangedShader) {
-      ImGui::Text("Basic Shader");
-    }
-    else {
-      ImGui::Text("Changed Shader");
-    }
-
     if (ImGui::Button("Toggle Skinning")) {
       renderData.rdGPUVertexSkinning = !renderData.rdGPUVertexSkinning;
     }
