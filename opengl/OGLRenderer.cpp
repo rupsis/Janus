@@ -34,18 +34,16 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   mVertexBuffer.init();
   Logger::log(1, "%s: vertex buffer successfully created\n", __FUNCTION__);
 
-  mUniformBuffer.init();
+  size_t uniformMatrixBufferSize = 2 * sizeof(glm::mat4);
+  mUniformBuffer.init(uniformMatrixBufferSize);
   Logger::log(1, "%s: uniform buffer successfully created\n", __FUNCTION__);
 
-  if (!mBasicShader.loadShaders("shader/basic.vert", "shader/basic.frag")) {
-    return false;
-  }
-
-  if (!mChangedShader.loadShaders("shader/changed.vert", "shader/changed.frag")) {
-    return false;
-  }
 
   if (!mGltfShader.loadShaders("shader/gltf.vert", "shader/gltf.frag")) {
+    return false;
+  }
+
+  if (!mGltfGPUShader.loadShaders("shader/gltf_gpu.vert", "shader/gltf_gpu.frag")) {
     return false;
   }
 
@@ -66,6 +64,13 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
 
   mGltfModel->uploadIndexBuffer();
 
+  size_t modelJointMatrixBufferSize = mGltfModel->getJointMatrixSize() * sizeof(glm::mat4);
+  mGltfShaderStorageBuffer.init(modelJointMatrixBufferSize);
+  Logger::log(1,
+              "%s: glTF joint matrix shader storage buffer (size %i bytes) successfully created\n",
+              __FUNCTION__,
+              modelJointMatrixBufferSize);
+
   return true;
 }
 
@@ -84,7 +89,23 @@ void OGLRenderer::draw() {
   Logger::log(1, "%s: OpenGL Render draw \n", __FUNCTION__);
 
   // TODO add in the upload to VBO timer
-  mGltfModel->uploadVertexBuffers();
+
+  /* upload required data only when switching GPU and CPU */
+  static bool lastGPURenderState = mRenderData.rdGPUVertexSkinning;
+
+  if (lastGPURenderState != mRenderData.rdGPUVertexSkinning) {
+    mModelUploadRequired = true;
+    lastGPURenderState = mRenderData.rdGPUVertexSkinning;
+  }
+  if (mModelUploadRequired) {
+    mGltfModel->uploadVertexBuffers();
+    mModelUploadRequired = false;
+  }
+
+  if (!mRenderData.rdGPUVertexSkinning) {
+    /* glTF vertex skinning, overwrites position buffer, needs upload on every frame */
+    mGltfModel->applyCPUVertexSkinning();
+  }
 
   double tickTime = glfwGetTime();
   mRenderData.rdTickDiff = tickTime - lastTickTime;
@@ -106,15 +127,16 @@ void OGLRenderer::draw() {
                                        0.1f,
                                        100.f);
 
-  // draw triangle from buffer
-  if (mRenderData.rdUseChangedShader) {
-    mChangedShader.use();
-  }
-  else {
-    mBasicShader.use();
-  }
+
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
-  mUniformBuffer.uploadUboData(mViewMatrix, mProjectionMatrix);
+  std::vector<glm::mat4> matrixData;
+  matrixData.push_back(mViewMatrix);
+  matrixData.push_back(mProjectionMatrix);
+  mUniformBuffer.uploadUboData(matrixData, 0);
+
+  if (mRenderData.rdGPUVertexSkinning) {
+    mGltfShaderStorageBuffer.uploadSsboData(mGltfModel->getJointMatrices(), 1);
+  }
 
   mTex.bind();
   mVertexBuffer.bind();
@@ -123,7 +145,13 @@ void OGLRenderer::draw() {
   mTex.unbind();
 
   /* draw the glTF model */
-  mGltfShader.use();
+  if (mRenderData.rdGPUVertexSkinning) {
+    mGltfGPUShader.use();
+  }
+  else {
+    mGltfShader.use();
+  }
+
   mGltfModel->draw();
 
   mFramebuffer.unbind();
@@ -146,6 +174,7 @@ void OGLRenderer::cleanup() {
   mBasicShader.cleanup();
   mChangedShader.cleanup();
   mGltfShader.cleanup();
+  mGltfGPUShader.cleanup();
 
   mTex.cleanup();
   mGltfModel->cleanup();

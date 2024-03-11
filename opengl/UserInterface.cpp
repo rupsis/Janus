@@ -122,16 +122,16 @@ static void renderCamera(OGLRenderData &renderData) {
 
 static void renderChangeShaders(OGLRenderData &renderData) {
   if (ImGui::CollapsingHeader("Shaders")) {
-    if (ImGui::Button("Toggle Shader")) {
-      renderData.rdUseChangedShader = !renderData.rdUseChangedShader;
+    if (ImGui::Button("Toggle Skinning")) {
+      renderData.rdGPUVertexSkinning = !renderData.rdGPUVertexSkinning;
     }
 
     ImGui::SameLine();
-    if (!renderData.rdUseChangedShader) {
-      ImGui::Text("Basic Shader");
+    if (!renderData.rdGPUVertexSkinning) {
+      ImGui::Text("CPU Skinning");
     }
     else {
-      ImGui::Text("Changed Shader");
+      ImGui::Text("GPU Skinning");
     }
   }
 }
