@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <string>
 #include <vector>
 
 #include <glad/glad.h>
@@ -27,16 +28,18 @@ struct OGLRenderData {
   unsigned int rdWidth = 0;
 
   unsigned int rdTriangleCount = 0;
+  unsigned int rdGltfTriangleCount = 0;
+
   float rdFrameTime = 0.0f;
   float rdUIGenerateTime = 0.0f;
 
   bool rdUseChangedShader = false;
   bool rdGPUVertexSkinning = true;
-  int rdFieldOfView = 90;
 
   // Camera info
   float rdViewAzimuth = 320.0f;
   float rdViewElevation = -15.0f;
+  int rdFieldOfView = 90;
 
   glm::vec3 rdCameraWorldPosition = glm::vec3(0.5f, 0.25f, 1.0f);
 
@@ -46,5 +49,12 @@ struct OGLRenderData {
 
   float rdTickDiff = 0.0f;
 
-  unsigned int rdGltfTriangleCount = 0;
+  /* Animation */
+  bool rdPlayAnimation = true;
+  std::string rdClipName = "None";
+  int rdAnimClip = 0;
+  int rdAnimClipSize = 0;
+  float rdAnimSpeed = 1.0f;
+  float rdAnimTimePosition = 0.0f;
+  float rdAnimEndTime = 0.0f;
 };

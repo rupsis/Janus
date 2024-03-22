@@ -8,6 +8,7 @@
 
 #include "Texture.h"
 
+#include "GltfAnimationClip.h"
 #include "GltfNode.h"
 
 #include "OGLRenderData.h"
@@ -26,10 +27,18 @@ class GltfModel {
   int getJointMatrixSize();
   std::vector<glm::mat4> getJointMatrices();
 
+  /* Animations */
+  void playAnimation(int animNum, float speedDiver);
+  void setAnimationFrame(int animNumber, float time);
+  float getAnimationEndTime(int animNum);
+  std::string getClipName(int animNum);
+  void getAnimations();
+
  private:
   void createVertexBuffers();
   void createIndexBuffer();
   int getTriangleCount();
+  void getSkeletonPerNode(std::shared_ptr<GltfNode> treeNode, bool enableSkinning);
 
   /* Armature. */
   void getJointData();
@@ -37,7 +46,8 @@ class GltfModel {
   void getInvBindMatrices();
   void getNodes(std::shared_ptr<GltfNode> treeNode);
   void getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
-  void getSkeletonPerNode(std::shared_ptr<GltfNode> treeNode, bool enableSkinning);
+  void updateNodeMatrices(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
+  void updateJointMatricesAndQuats(std::shared_ptr<GltfNode> treeNode);
 
   // Joint data is hardcoded to the test model.
   // Will need to check componentType field to convert
@@ -57,6 +67,11 @@ class GltfModel {
   std::shared_ptr<tinygltf::Model> mModel = nullptr;
 
   std::shared_ptr<OGLMesh> mSkeletonMesh = nullptr;
+
+  std::vector<std::shared_ptr<GltfNode>> mNodeList;
+
+  // Animation
+  std::vector<GltfAnimationClip> mAnimClips{};
 
   GLuint mVAO = 0;
   std::vector<GLuint> mVertexVBO{};

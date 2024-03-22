@@ -5,6 +5,9 @@
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <chrono>
+#include <cmath>
+
 #include "GltfModel.h"
 #include "Logger.h"
 
@@ -208,6 +211,10 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
 
   mRootNode->printTree();
 
+  /* extract Animation data */
+  getAnimations();
+  renderData.rdAnimClipSize = mAnimClips.size();
+
   renderData.rdTriangleCount = getTriangleCount();
   return true;
 }
@@ -356,6 +363,48 @@ void GltfModel::getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parent
   }
 }
 
+void GltfModel::updateNodeMatrices(std::shared_ptr<GltfNode> treeNode,
+                                   glm::mat4 parentNodeMatrix) {
+  treeNode->calculateNodeMatrix(parentNodeMatrix);
+  updateJointMatricesAndQuats(treeNode);
+
+  glm::mat4 treeNodeMatrix = treeNode->getNodeMatrix();
+
+  for (auto &childNode : treeNode->getChilds()) {
+    updateNodeMatrices(childNode, treeNodeMatrix);
+  }
+}
+
+void GltfModel::updateJointMatricesAndQuats(std::shared_ptr<GltfNode> treeNode) {
+  int nodeNum = treeNode->getNodeNum();
+  mJointMatrices.at(mNodeToJoint.at(nodeNum)) = treeNode->getNodeMatrix() *
+                                                mInverseBindMatrices.at(mNodeToJoint.at(nodeNum));
+
+  // Components of node matrix
+  glm::quat orientation;
+  glm::vec3 scale;
+  glm::vec3 translation;
+  glm::vec3 skew;
+  glm::vec4 perspective;
+  glm::dualquat dq;
+
+  /* Create dual quaternion */
+  if (glm::decompose(mJointMatrices.at(mNodeToJoint.at(nodeNum)),
+                     scale,
+                     orientation,
+                     translation,
+                     skew,
+                     perspective))
+  {
+    dq[0] = orientation;
+    dq[1] = glm::quat(0.0, translation.x, translation.y, translation.z) * orientation * 0.5f;
+    mJointDualQuats.at(mNodeToJoint.at(nodeNum)) = glm::mat2x4_cast(dq);
+  }
+  else {
+    Logger::log(1, "%s error: could not decompose matrix for node %i\n", __FUNCTION__, nodeNum);
+  }
+}
+
 std::shared_ptr<OGLMesh> GltfModel::getSkeleton(bool enableSkinning) {
   mSkeletonMesh->vertices.resize(mModel->nodes.size() * 2);
   mSkeletonMesh->vertices.clear();
@@ -397,6 +446,40 @@ void GltfModel::getSkeletonPerNode(std::shared_ptr<GltfNode> treeNode, bool enab
 
     getSkeletonPerNode(childNode, enableSkinning);
   }
+}
+
+void GltfModel::getAnimations() {
+  for (const auto &anim : mModel->animations) {
+    GltfAnimationClip clip(anim.name);
+    for (const auto &channel : anim.channels) {
+      clip.addChannel(mModel, anim, channel);
+    }
+    mAnimClips.push_back(clip);
+  }
+}
+
+float GltfModel::getAnimationEndTime(int animNum) {
+  return mAnimClips.at(animNum).getClipEndTime();
+}
+
+std::string GltfModel::getClipName(int animNum) {
+  return mAnimClips.at(animNum).getClipName();
+}
+
+/* Animation */
+
+void GltfModel::playAnimation(int animNum, float speedDivider) {
+  double currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           std::chrono::steady_clock::now().time_since_epoch())
+                           .count();
+  setAnimationFrame(
+      animNum,
+      std::fmod(currentTime / 1000.0 * speedDivider, mAnimClips.at(animNum).getClipEndTime()));
+}
+
+void GltfModel::setAnimationFrame(int animNum, float time) {
+  mAnimClips.at(animNum).setAnimationFrame(mNodeList, time);
+  updateNodeMatrices(mRootNode, glm::mat4(1.0f));
 }
 
 /* ------ */

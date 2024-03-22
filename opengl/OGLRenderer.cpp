@@ -38,7 +38,6 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   mUniformBuffer.init(uniformMatrixBufferSize);
   Logger::log(1, "%s: uniform buffer successfully created\n", __FUNCTION__);
 
-
   if (!mGltfShader.loadShaders("shader/gltf.vert", "shader/gltf.frag")) {
     return false;
   }
@@ -127,8 +126,18 @@ void OGLRenderer::draw() {
                                        0.1f,
                                        100.f);
 
-
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
+
+  /* Animate */
+  mRenderData.rdClipName = mGltfModel->getClipName(mRenderData.rdAnimClip);
+  if (mRenderData.rdPlayAnimation) {
+    mGltfModel->playAnimation(mRenderData.rdAnimClip, mRenderData.rdAnimSpeed);
+  }
+  else {
+    mRenderData.rdAnimEndTime = mGltfModel->getAnimationEndTime(mRenderData.rdAnimClip);
+    mGltfModel->setAnimationFrame(mRenderData.rdAnimClip, mRenderData.rdAnimTimePosition);
+  }
+
   std::vector<glm::mat4> matrixData;
   matrixData.push_back(mViewMatrix);
   matrixData.push_back(mProjectionMatrix);
