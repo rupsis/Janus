@@ -1,20 +1,22 @@
 #include "GltfAnimationChannel.h"
 
+#include <iostream>
+
 void GltfAnimationChannel::loadChannelData(std::shared_ptr<tinygltf::Model> model,
                                            tinygltf::Animation anim,
                                            tinygltf::AnimationChannel channel) {
   mTargetNode = channel.target_node;
 
   // extract input data from GLTF file
-  const tinygltf::Accessor &inputAccessor = model->accessors.at(
-      anim.samplers.at(channel.sampler).input);
+  const tinygltf::Accessor& inputAccessor = model->accessors.at(anim.samplers.at(channel.sampler).input);
   const tinygltf::BufferView &inputBufferView = model->bufferViews.at(inputAccessor.bufferView);
   const tinygltf::Buffer &inputBuffer = model->buffers.at(inputBufferView.buffer);
 
+   // Allocate memory for raw time values
   std::vector<float> timings;
-
-  // Allocate memory for raw time values
   timings.resize(inputAccessor.count);
+
+ 
   std::memcpy(timings.data(),
               &inputBuffer.data.at(0) + inputBufferView.byteOffset,
               inputBufferView.byteLength);
@@ -42,6 +44,7 @@ void GltfAnimationChannel::loadChannelData(std::shared_ptr<tinygltf::Model> mode
     mTargetPath = ETargetPath::ROTATION;
     std::vector<glm::quat> rotations;
     rotations.resize(outputAccessor.count);
+
     std::memcpy(rotations.data(),
                 &outputBuffer.data.at(0) + outputBufferView.byteOffset,
                 outputBufferView.byteLength);
@@ -51,6 +54,7 @@ void GltfAnimationChannel::loadChannelData(std::shared_ptr<tinygltf::Model> mode
     mTargetPath = ETargetPath::TRANSLATION;
     std::vector<glm::vec3> translations;
     translations.resize(outputAccessor.count);
+
     std::memcpy(translations.data(),
                 &outputBuffer.data.at(0) + outputBufferView.byteOffset,
                 outputBufferView.byteLength);
@@ -60,6 +64,7 @@ void GltfAnimationChannel::loadChannelData(std::shared_ptr<tinygltf::Model> mode
     mTargetPath = ETargetPath::SCALE;
     std::vector<glm::vec3> scale;
     scale.resize(outputAccessor.count);
+
     std::memcpy(scale.data(),
                 &outputBuffer.data.at(0) + outputBufferView.byteOffset,
                 outputBufferView.byteLength);
@@ -291,6 +296,7 @@ glm::quat GltfAnimationChannel::getRotation(float time) {
 void GltfAnimationChannel::setTimings(std::vector<float> timinings) {
   mTimings = timinings;
 }
+
 void GltfAnimationChannel::setScalings(std::vector<glm::vec3> scalings) {
   mScaling = scalings;
 }

@@ -4,6 +4,8 @@
 #include "Logger.h"
 #include "OGLRenderer.h"
 
+#include <iostream>
+
 OGLRenderer::OGLRenderer(GLFWwindow *window) {
   mRenderData.rdWindow = window;
 }
@@ -128,15 +130,20 @@ void OGLRenderer::draw() {
 
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
 
+
+
   /* Animate */
   mRenderData.rdClipName = mGltfModel->getClipName(mRenderData.rdAnimClip);
   if (mRenderData.rdPlayAnimation) {
+    std::cout << "play animation true" << std::endl;
     mGltfModel->playAnimation(mRenderData.rdAnimClip, mRenderData.rdAnimSpeed);
   }
   else {
     mRenderData.rdAnimEndTime = mGltfModel->getAnimationEndTime(mRenderData.rdAnimClip);
     mGltfModel->setAnimationFrame(mRenderData.rdAnimClip, mRenderData.rdAnimTimePosition);
   }
+
+    std::cout << "made it here" << std::endl;
 
   std::vector<glm::mat4> matrixData;
   matrixData.push_back(mViewMatrix);
