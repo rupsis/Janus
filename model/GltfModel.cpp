@@ -202,28 +202,6 @@ void GltfModel::uploadIndexBuffer() {
                GL_STATIC_DRAW);
 }
 
-void GltfModel::applyCPUVertexSkinning() {
-  const tinygltf::Accessor &accessor = mModel->accessors.at(mAttribAccessors.at(0));
-  const tinygltf::BufferView &bufferView = mModel->bufferViews.at(accessor.bufferView);
-  const tinygltf::Buffer &buffer = mModel->buffers.at(bufferView.buffer);
-
-  std::memcpy(
-      mAlteredPositions.data(), &buffer.data.at(0) + bufferView.byteOffset, bufferView.byteLength);
-
-  for (int i = 0; i < mJointVec.size(); ++i) {
-    glm::ivec4 jointIndex = glm::make_vec4(mJointVec.at(i));
-    glm::vec4 weightIndex = glm::make_vec4(mWeightVec.at(i));
-    glm::mat4 skinMat = weightIndex.x * mJointMatrices.at(jointIndex.x) +
-                        weightIndex.y * mJointMatrices.at(jointIndex.y) +
-                        weightIndex.z * mJointMatrices.at(jointIndex.z) +
-                        weightIndex.w * mJointMatrices.at(jointIndex.w);
-    mAlteredPositions.at(i) = skinMat * glm::vec4(mAlteredPositions.at(i), 1.0f);
-  }
-  glBindBuffer(GL_ARRAY_BUFFER, mVertexVBO.at(0));
-  glBufferData(GL_ARRAY_BUFFER, bufferView.byteLength, mAlteredPositions.data(), GL_STATIC_DRAW);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
 void GltfModel::updateNodeMatrices(std::shared_ptr<GltfNode> treeNode,
                                    glm::mat4 parentNodeMatrix) {
   treeNode->calculateNodeMatrix(parentNodeMatrix);

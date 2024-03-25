@@ -108,13 +108,21 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
 }
 
 void OGLRenderer::setSize(unsigned int width, unsigned int height) {
+  /* handle minimize */
+  if (width == 0 || height == 0) {
+    return;
+  }
+
+  mRenderData.rdWidth = width;
+  mRenderData.rdHeight = height;
+
   mFramebuffer.resize(width, height);
   glViewport(0, 0, width, height);
+
+  Logger::log(1, "%s: resized window to %dx%d\n", __FUNCTION__, width, height);
 }
 
 void OGLRenderer::uploadData(OGLMesh vertexData) {
-  Logger::log(1, "%s: OpenGL Render uploadData \n", __FUNCTION__);
-  mRenderData.rdTriangleCount = vertexData.vertices.size();
   mVertexBuffer.uploadData(vertexData);
 }
 

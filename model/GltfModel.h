@@ -21,7 +21,6 @@ class GltfModel {
   void draw();
   void cleanup();
   void uploadVertexBuffers();
-  void applyCPUVertexSkinning();
   void uploadIndexBuffer();
   std::shared_ptr<OGLMesh> getSkeleton();
   int getJointMatrixSize();
