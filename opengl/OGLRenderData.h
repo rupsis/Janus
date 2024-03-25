@@ -24,8 +24,8 @@ struct OGLMesh {
 struct OGLRenderData {
   GLFWwindow *rdWindow = nullptr;
 
-  unsigned int rdHeight = 0;
-  unsigned int rdWidth = 0;
+  int rdHeight = 0;
+  int rdWidth = 0;
 
   unsigned int rdTriangleCount = 0;
   unsigned int rdGltfTriangleCount = 0;

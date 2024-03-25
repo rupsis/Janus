@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui_impl_glfw.h>
 
@@ -117,41 +119,40 @@ void OGLRenderer::uploadData(OGLMesh vertexData) {
 }
 
 void OGLRenderer::draw() {
-  Logger::log(1, "%s: OpenGL Render draw \n", __FUNCTION__);
-
-  // TODO add in the upload to VBO timer
-
-  if (mModelUploadRequired) {
-    mGltfModel->uploadVertexBuffers();
-    mModelUploadRequired = false;
+  /* handle minimize */
+  while (mRenderData.rdWidth == 0 || mRenderData.rdHeight == 0) {
+    glfwGetFramebufferSize(mRenderData.rdWindow, &mRenderData.rdWidth, &mRenderData.rdHeight);
+    glfwWaitEvents();
   }
 
+  /* get time difference for movement */
   double tickTime = glfwGetTime();
-  mRenderData.rdTickDiff = tickTime - lastTickTime;
+  mRenderData.rdTickDiff = tickTime - mLastTickTime;
 
-  static float prevFrameStartTime = 0.0f;
-  float frameStartTime = glfwGetTime();
+  mRenderData.rdFrameTime = mFrameTimer.stop();
+  mFrameTimer.start();
 
   handleMovementKeys();
 
-  // Bind buffer to let us receive vertex data.
+  /* draw to framebuffer */
   mFramebuffer.bind();
-  glClearColor(0.1f, 0.1f, 0.1f, 0.1f);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_CULL_FACE);
 
+  glClearColor(0.25f, 0.25f, 0.25f, 1.0f);
+  glClearDepth(1.0f);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  mMatrixGenerateTimer.start();
   mProjectionMatrix = glm::perspective(glm::radians(static_cast<float>(mRenderData.rdFieldOfView)),
                                        static_cast<float>(mRenderData.rdWidth) /
                                            static_cast<float>(mRenderData.rdHeight),
-                                       0.1f,
-                                       100.f);
+                                       0.01f,
+                                       50.0f);
 
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
 
-  /* Animate */
+  /* animate */
   mRenderData.rdClipName = mGltfModel->getClipName(mRenderData.rdAnimClip);
   if (mRenderData.rdPlayAnimation) {
-    std::cout << "play animation true" << std::endl;
     mGltfModel->playAnimation(mRenderData.rdAnimClip, mRenderData.rdAnimSpeed);
   }
   else {
@@ -159,18 +160,46 @@ void OGLRenderer::draw() {
     mGltfModel->setAnimationFrame(mRenderData.rdAnimClip, mRenderData.rdAnimTimePosition);
   }
 
-  std::cout << "made it here" << std::endl;
+  /* get gltTF skeleton */
+  if (mRenderData.rdDrawSkeleton) {
+    mSkeletonMesh = mGltfModel->getSkeleton();
+  }
+  mRenderData.rdMatrixGenerateTime = mMatrixGenerateTimer.stop();
 
+  mUploadToUBOTimer.start();
   std::vector<glm::mat4> matrixData;
   matrixData.push_back(mViewMatrix);
   matrixData.push_back(mProjectionMatrix);
   mUniformBuffer.uploadUboData(matrixData, 0);
 
-  mTex.bind();
-  mVertexBuffer.bind();
-  mVertexBuffer.draw(GL_TRIANGLES, 0, mRenderData.rdTriangleCount);
-  mVertexBuffer.unbind();
-  mTex.unbind();
+  if (mRenderData.rdGPUDualQuatVertexSkinning) {
+    mGltfDualQuatSSBuffer.uploadSsboData(mGltfModel->getJointDualQuats(), 2);
+  }
+  else {
+    mGltfShaderStorageBuffer.uploadSsboData(mGltfModel->getJointMatrices(), 1);
+  }
+  mRenderData.rdUploadToUBOTime = mUploadToUBOTimer.stop();
+
+  /* upload vertex data */
+  mUploadToVBOTimer.start();
+
+  if (mRenderData.rdDrawSkeleton) {
+    uploadData(*mSkeletonMesh);
+  }
+
+  if (mModelUploadRequired) {
+    mGltfModel->uploadVertexBuffers();
+    mModelUploadRequired = false;
+  }
+
+  mRenderData.rdUploadToVBOTime = mUploadToVBOTimer.stop();
+
+  if (mRenderData.rdDrawSkeleton) {
+    mSkeletonLineIndexCount = mSkeletonMesh->vertices.size();
+  }
+  else {
+    mSkeletonLineIndexCount = 0;
+  }
 
   /* draw the glTF model */
   if (mRenderData.rdDrawGltfModel) {
@@ -192,17 +221,19 @@ void OGLRenderer::draw() {
   }
 
   mFramebuffer.unbind();
+
+  /* blit color buffer to screen */
   mFramebuffer.drawToScreen();
 
   mUIGenerateTimer.start();
   mUserInterface.createFrame(mRenderData);
   mRenderData.rdUIGenerateTime = mUIGenerateTimer.stop();
-  mUserInterface.render();
 
-  //  Calculate the FPS
-  mRenderData.rdFrameTime = frameStartTime - prevFrameStartTime;
-  prevFrameStartTime = frameStartTime;
-  lastTickTime = tickTime;
+  mUIDrawTimer.start();
+  mUserInterface.render();
+  mRenderData.rdUIDrawTime = mUIDrawTimer.stop();
+
+  mLastTickTime = tickTime;
 }
 
 void OGLRenderer::cleanup() {
