@@ -13,7 +13,7 @@
 #include "Shader.h"
 #include "Texture.h"
 
-#include "SharedStorageBuffer.h"
+#include "ShaderStorageBuffer.h"
 #include "UniformBuffer.h"
 #include "UserInterface.h"
 #include "VertexBuffer.h"
@@ -50,12 +50,18 @@ class OGLRenderer {
   UserInterface mUserInterface{};
 
   /* Model. */
-  Shader mGltfShader{};
-  Shader mGltfGPUShader{};
   std::shared_ptr<GltfModel> mGltfModel = nullptr;
   bool mModelUploadRequired = true;
 
+  std::shared_ptr<OGLMesh> mSkeletonMesh = nullptr;
+  unsigned int mSkeletonLineIndexCount = 0;
+
   /* Shaders. */
+  Shader mGltfShader{};
+  Shader mGltfGPUShader{};
+  Shader mGltfGPUDualQuatShader{};
+
+  Shader mLineShader{};
   Shader mBasicShader{};
   Shader mChangedShader{};
 
@@ -66,13 +72,21 @@ class OGLRenderer {
   Framebuffer mFramebuffer{};
   VertexBuffer mVertexBuffer{};
   UniformBuffer mUniformBuffer{};
-  SharedStorageBuffer mGltfShaderStorageBuffer{};
+  ShaderStorageBuffer mGltfShaderStorageBuffer{};
+  ShaderStorageBuffer mGltfDualQuatSSBuffer{};
 
   /* UniformBuffer Data. */
   glm::mat4 mViewMatrix = glm::mat4(1.0f);
   glm::mat4 mProjectionMatrix = glm::mat4(1.0f);
 
+  /* Timers*/
+  Timer mFrameTimer{};
+  Timer mMatrixGenerateTimer{};
+  Timer mUploadToVBOTimer{};
+  Timer mUploadToUBOTimer{};
   Timer mUIGenerateTimer{};
+  Timer mUIDrawTimer{};
+
   Camera mCamera{};
 
   /* Mouse values. */

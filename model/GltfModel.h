@@ -26,6 +26,8 @@ class GltfModel {
   std::shared_ptr<OGLMesh> getSkeleton(bool enableSkinning);
   int getJointMatrixSize();
   std::vector<glm::mat4> getJointMatrices();
+  int getJointDualQuatsSize();
+  std::vector<glm::mat2x4> getJointDualQuats();
 
   /* Animations */
   void playAnimation(int animNum, float speedDiver);

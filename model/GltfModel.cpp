@@ -12,15 +12,15 @@
 #include "GltfModel.h"
 #include "Logger.h"
 
-
 bool GltfModel::loadModel(OGLRenderData &renderData,
-    std::string modelFilename, std::string textureFilename) {
+                          std::string modelFilename,
+                          std::string textureFilename) {
   if (!mTex.loadTexture(textureFilename, false)) {
     Logger::log(1, "%s: texture loading failed\n", __FUNCTION__);
     return false;
   }
-  Logger::log(1, "%s: glTF model texture '%s' successfully loaded\n", __FUNCTION__,
-    modelFilename.c_str());
+  Logger::log(
+      1, "%s: glTF model texture '%s' successfully loaded\n", __FUNCTION__, modelFilename.c_str());
 
   mModel = std::make_shared<tinygltf::Model>();
 
@@ -29,22 +29,21 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
   std::string loaderWarnings;
   bool result = false;
 
-  result = gltfLoader.LoadASCIIFromFile(mModel.get(), &loaderErrors, &loaderWarnings,
-    modelFilename);
+  result = gltfLoader.LoadASCIIFromFile(
+      mModel.get(), &loaderErrors, &loaderWarnings, modelFilename);
 
   if (!loaderWarnings.empty()) {
-    Logger::log(1, "%s: warnings while loading glTF model:\n%s\n", __FUNCTION__,
-      loaderWarnings.c_str());
+    Logger::log(
+        1, "%s: warnings while loading glTF model:\n%s\n", __FUNCTION__, loaderWarnings.c_str());
   }
 
   if (!loaderErrors.empty()) {
-    Logger::log(1, "%s: errors while loading glTF model:\n%s\n", __FUNCTION__,
-      loaderErrors.c_str());
+    Logger::log(
+        1, "%s: errors while loading glTF model:\n%s\n", __FUNCTION__, loaderErrors.c_str());
   }
 
   if (!result) {
-    Logger::log(1, "%s error: could not load file '%s'\n", __FUNCTION__,
-      modelFilename.c_str());
+    Logger::log(1, "%s error: could not load file '%s'\n", __FUNCTION__, modelFilename.c_str());
     return false;
   }
 
@@ -65,8 +64,7 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
   /* build model tree */
   int nodeCount = mModel->nodes.size();
   int rootNode = mModel->scenes.at(0).nodes.at(0);
-  Logger::log(1, "%s: model has %i nodes, root node is %i\n", __FUNCTION__, nodeCount,
-    rootNode);
+  Logger::log(1, "%s: model has %i nodes, root node is %i\n", __FUNCTION__, nodeCount, rootNode);
 
   mNodeList.resize(nodeCount);
 
@@ -88,7 +86,6 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
 
   return true;
 }
-
 
 void GltfModel::createVertexBuffers() {
   // Model assumes only 1 mesh.
@@ -227,7 +224,47 @@ void GltfModel::applyCPUVertexSkinning() {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void GltfModel::updateNodeMatrices(std::shared_ptr<GltfNode> treeNode,
+                                   glm::mat4 parentNodeMatrix) {
+  treeNode->calculateNodeMatrix(parentNodeMatrix);
+  updateJointMatricesAndQuats(treeNode);
 
+  glm::mat4 treeNodeMatrix = treeNode->getNodeMatrix();
+
+  for (auto &childNode : treeNode->getChilds()) {
+    updateNodeMatrices(childNode, treeNodeMatrix);
+  }
+}
+
+void GltfModel::updateJointMatricesAndQuats(std::shared_ptr<GltfNode> treeNode) {
+  int nodeNum = treeNode->getNodeNum();
+  mJointMatrices.at(mNodeToJoint.at(nodeNum)) = treeNode->getNodeMatrix() *
+                                                mInverseBindMatrices.at(mNodeToJoint.at(nodeNum));
+
+  // Components of node matrix
+  glm::quat orientation;
+  glm::vec3 scale;
+  glm::vec3 translation;
+  glm::vec3 skew;
+  glm::vec4 perspective;
+  glm::dualquat dq;
+
+  /* Create dual quaternion */
+  if (glm::decompose(mJointMatrices.at(mNodeToJoint.at(nodeNum)),
+                     scale,
+                     orientation,
+                     translation,
+                     skew,
+                     perspective))
+  {
+    dq[0] = orientation;
+    dq[1] = glm::quat(0.0, translation.x, translation.y, translation.z) * orientation * 0.5f;
+    mJointDualQuats.at(mNodeToJoint.at(nodeNum)) = glm::mat2x4_cast(dq);
+  }
+  else {
+    Logger::log(1, "%s error: could not decompose matrix for node %i\n", __FUNCTION__, nodeNum);
+  }
+}
 
 /* Getters. */
 int GltfModel::getTriangleCount() {
@@ -311,14 +348,22 @@ std::vector<glm::mat4> GltfModel::getJointMatrices() {
   return mJointMatrices;
 }
 
+int GltfModel::getJointDualQuatsSize() {
+  return mJointDualQuats.size();
+}
+
+std::vector<glm::mat2x4> GltfModel::getJointDualQuats() {
+  return mJointDualQuats;
+}
+
 void GltfModel::getNodes(std::shared_ptr<GltfNode> treeNode) {
   int nodeNum = treeNode->getNodeNum();
   std::vector<int> childNodes = mModel->nodes.at(nodeNum).children;
 
   /* remove the child node with skin/mesh metadata, confuses skeleton */
-  auto removeIt = std::remove_if(childNodes.begin(), childNodes.end(),
-    [&](int num) { return mModel->nodes.at(num).skin != -1; }
-  );
+  auto removeIt = std::remove_if(childNodes.begin(), childNodes.end(), [&](int num) {
+    return mModel->nodes.at(num).skin != -1;
+  });
   childNodes.erase(removeIt, childNodes.end());
 
   treeNode->addChilds(childNodes);
@@ -374,48 +419,6 @@ void GltfModel::getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parent
   }
 }
 
-void GltfModel::updateNodeMatrices(std::shared_ptr<GltfNode> treeNode,
-                                   glm::mat4 parentNodeMatrix) {
-  treeNode->calculateNodeMatrix(parentNodeMatrix);
-  updateJointMatricesAndQuats(treeNode);
-
-  glm::mat4 treeNodeMatrix = treeNode->getNodeMatrix();
-
-  for (auto &childNode : treeNode->getChilds()) {
-    updateNodeMatrices(childNode, treeNodeMatrix);
-  }
-}
-
-void GltfModel::updateJointMatricesAndQuats(std::shared_ptr<GltfNode> treeNode) {
-  int nodeNum = treeNode->getNodeNum();
-  mJointMatrices.at(mNodeToJoint.at(nodeNum)) = treeNode->getNodeMatrix() *
-                                                mInverseBindMatrices.at(mNodeToJoint.at(nodeNum));
-
-  // Components of node matrix
-  glm::quat orientation;
-  glm::vec3 scale;
-  glm::vec3 translation;
-  glm::vec3 skew;
-  glm::vec4 perspective;
-  glm::dualquat dq;
-
-  /* Create dual quaternion */
-  if (glm::decompose(mJointMatrices.at(mNodeToJoint.at(nodeNum)),
-                     scale,
-                     orientation,
-                     translation,
-                     skew,
-                     perspective))
-  {
-    dq[0] = orientation;
-    dq[1] = glm::quat(0.0, translation.x, translation.y, translation.z) * orientation * 0.5f;
-    mJointDualQuats.at(mNodeToJoint.at(nodeNum)) = glm::mat2x4_cast(dq);
-  }
-  else {
-    Logger::log(1, "%s error: could not decompose matrix for node %i\n", __FUNCTION__, nodeNum);
-  }
-}
-
 std::shared_ptr<OGLMesh> GltfModel::getSkeleton(bool enableSkinning) {
   mSkeletonMesh->vertices.resize(mModel->nodes.size() * 2);
   mSkeletonMesh->vertices.clear();
@@ -461,7 +464,11 @@ void GltfModel::getSkeletonPerNode(std::shared_ptr<GltfNode> treeNode, bool enab
 
 void GltfModel::getAnimations() {
   for (const auto &anim : mModel->animations) {
-    Logger::log(1, "%s: loading animation '%s' with %i channels\n", __FUNCTION__, anim.name.c_str(), anim.channels.size());
+    Logger::log(1,
+                "%s: loading animation '%s' with %i channels\n",
+                __FUNCTION__,
+                anim.name.c_str(),
+                anim.channels.size());
     std::shared_ptr<GltfAnimationClip> clip = std::make_shared<GltfAnimationClip>(anim.name);
     for (const auto &channel : anim.channels) {
       clip->addChannel(mModel, anim, channel);
@@ -481,8 +488,12 @@ std::string GltfModel::getClipName(int animNum) {
 /* Animation */
 
 void GltfModel::playAnimation(int animNum, float speedDivider) {
-  double currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-  setAnimationFrame(animNum, std::fmod(currentTime / 1000.0 * speedDivider, mAnimClips.at(animNum)->getClipEndTime()));
+  double currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           std::chrono::steady_clock::now().time_since_epoch())
+                           .count();
+  setAnimationFrame(
+      animNum,
+      std::fmod(currentTime / 1000.0 * speedDivider, mAnimClips.at(animNum)->getClipEndTime()));
 }
 
 void GltfModel::setAnimationFrame(int animNum, float time) {
