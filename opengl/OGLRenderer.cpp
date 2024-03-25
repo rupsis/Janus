@@ -42,7 +42,10 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
 
   size_t uniformMatrixBufferSize = 2 * sizeof(glm::mat4);
   mUniformBuffer.init(uniformMatrixBufferSize);
-  Logger::log(1, "%s: matrix uniform buffer (size %i bytes) successfully created\n", __FUNCTION__, uniformMatrixBufferSize);
+  Logger::log(1,
+              "%s: matrix uniform buffer (size %i bytes) successfully created\n",
+              __FUNCTION__,
+              uniformMatrixBufferSize);
 
   if (!mLineShader.loadShaders("shader/line.vert", "shader/line.frag")) {
     Logger::log(1, "%s: line shader loading failed\n", __FUNCTION__);
@@ -53,7 +56,8 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
     return false;
   }
   if (!mGltfGPUDualQuatShader.loadShaders("shader/gltf_gpu_dquat.vert",
-      "shader/gltf_gpu_dquat.frag")) {
+                                          "shader/gltf_gpu_dquat.frag"))
+  {
     Logger::log(1, "%s: glTF GPU dual quat shader loading failed\n", __FUNCTION__);
     return false;
   }
@@ -79,12 +83,18 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
 
   size_t modelJointMatrixBufferSize = mGltfModel->getJointMatrixSize() * sizeof(glm::mat4);
   mGltfShaderStorageBuffer.init(modelJointMatrixBufferSize);
-  Logger::log(1, "%s: glTF joint matrix shader storage buffer (size %i bytes) successfully created\n", __FUNCTION__, modelJointMatrixBufferSize);
+  Logger::log(1,
+              "%s: glTF joint matrix shader storage buffer (size %i bytes) successfully created\n",
+              __FUNCTION__,
+              modelJointMatrixBufferSize);
 
-  size_t modelJointDualQuatBufferSize = mGltfModel->getJointDualQuatsSize() *
-    sizeof(glm::mat2x4);
+  size_t modelJointDualQuatBufferSize = mGltfModel->getJointDualQuatsSize() * sizeof(glm::mat2x4);
   mGltfDualQuatSSBuffer.init(modelJointDualQuatBufferSize);
-  Logger::log(1, "%s: glTF joint dual quaternions shader storage buffer (size %i bytes) successfully created\n", __FUNCTION__, modelJointDualQuatBufferSize);
+  Logger::log(1,
+              "%s: glTF joint dual quaternions shader storage buffer (size %i bytes) successfully "
+              "created\n",
+              __FUNCTION__,
+              modelJointDualQuatBufferSize);
 
   /* valid, but emtpy */
   mSkeletonMesh = std::make_shared<OGLMesh>();
@@ -111,21 +121,9 @@ void OGLRenderer::draw() {
 
   // TODO add in the upload to VBO timer
 
-  /* upload required data only when switching GPU and CPU */
-  static bool lastGPURenderState = mRenderData.rdGPUVertexSkinning;
-
-  if (lastGPURenderState != mRenderData.rdGPUVertexSkinning) {
-    mModelUploadRequired = true;
-    lastGPURenderState = mRenderData.rdGPUVertexSkinning;
-  }
   if (mModelUploadRequired) {
     mGltfModel->uploadVertexBuffers();
     mModelUploadRequired = false;
-  }
-
-  if (!mRenderData.rdGPUVertexSkinning) {
-    /* glTF vertex skinning, overwrites position buffer, needs upload on every frame */
-    mGltfModel->applyCPUVertexSkinning();
   }
 
   double tickTime = glfwGetTime();
@@ -150,8 +148,6 @@ void OGLRenderer::draw() {
 
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
 
-
-
   /* Animate */
   mRenderData.rdClipName = mGltfModel->getClipName(mRenderData.rdAnimClip);
   if (mRenderData.rdPlayAnimation) {
@@ -163,16 +159,12 @@ void OGLRenderer::draw() {
     mGltfModel->setAnimationFrame(mRenderData.rdAnimClip, mRenderData.rdAnimTimePosition);
   }
 
-    std::cout << "made it here" << std::endl;
+  std::cout << "made it here" << std::endl;
 
   std::vector<glm::mat4> matrixData;
   matrixData.push_back(mViewMatrix);
   matrixData.push_back(mProjectionMatrix);
   mUniformBuffer.uploadUboData(matrixData, 0);
-
-  if (mRenderData.rdGPUVertexSkinning) {
-    mGltfShaderStorageBuffer.uploadSsboData(mGltfModel->getJointMatrices(), 1);
-  }
 
   mTex.bind();
   mVertexBuffer.bind();
@@ -181,14 +173,23 @@ void OGLRenderer::draw() {
   mTex.unbind();
 
   /* draw the glTF model */
-  if (mRenderData.rdGPUVertexSkinning) {
-    mGltfGPUShader.use();
-  }
-  else {
-    mGltfShader.use();
+  if (mRenderData.rdDrawGltfModel) {
+    if (mRenderData.rdGPUDualQuatVertexSkinning) {
+      mGltfGPUDualQuatShader.use();
+    }
+    else {
+      mGltfGPUShader.use();
+    }
+    mGltfModel->draw();
   }
 
-  mGltfModel->draw();
+  /* draw the skeleton last, disable depth test to overlay */
+  if (mSkeletonLineIndexCount > 0 && mRenderData.rdDrawSkeleton) {
+    glDisable(GL_DEPTH_TEST);
+    mLineShader.use();
+    mVertexBuffer.bindAndDraw(GL_LINES, 0, mSkeletonLineIndexCount);
+    glEnable(GL_DEPTH_TEST);
+  }
 
   mFramebuffer.unbind();
   mFramebuffer.drawToScreen();

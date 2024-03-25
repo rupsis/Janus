@@ -13,7 +13,7 @@
 static void renderInfo(OGLRenderData &renderData);
 static void renderTimers(OGLRenderData &renderData);
 static void renderCamera(OGLRenderData &renderData);
-static void renderChangeShaders(OGLRenderData &renderData);
+static void renderModelControls(OGLRenderData &renderData);
 static void renderAnimationControls(OGLRenderData &renderData);
 
 void UserInterface::init(OGLRenderData &renderData) {
@@ -59,7 +59,7 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
 
   renderCamera(renderData);
 
-  renderChangeShaders(renderData);
+  renderModelControls(renderData);
 
   renderAnimationControls(renderData);
 
@@ -95,9 +95,39 @@ static void renderInfo(OGLRenderData &renderData) {
 
 static void renderTimers(OGLRenderData &renderData) {
   if (ImGui::CollapsingHeader("Timers")) {
+    ImGui::Text("Frame Time:");
+    ImGui::SameLine();
+    ImGui::Text("%s", std::to_string(renderData.rdFrameTime).c_str());
+    ImGui::SameLine();
+    ImGui::Text("ms");
+
+    ImGui::Text("Model Upload Time:");
+    ImGui::SameLine();
+    ImGui::Text("%s", std::to_string(renderData.rdUploadToVBOTime).c_str());
+    ImGui::SameLine();
+    ImGui::Text("ms");
+
+    ImGui::Text("Matrix Generation Time:");
+    ImGui::SameLine();
+    ImGui::Text("%s", std::to_string(renderData.rdMatrixGenerateTime).c_str());
+    ImGui::SameLine();
+    ImGui::Text("ms");
+
+    ImGui::Text("Matrix Upload Time:");
+    ImGui::SameLine();
+    ImGui::Text("%s", std::to_string(renderData.rdUploadToUBOTime).c_str());
+    ImGui::SameLine();
+    ImGui::Text("ms");
+
     ImGui::Text("UI Generation Time:");
     ImGui::SameLine();
     ImGui::Text("%s", std::to_string(renderData.rdUIGenerateTime).c_str());
+    ImGui::SameLine();
+    ImGui::Text("ms");
+
+    ImGui::Text("UI Draw Time:");
+    ImGui::SameLine();
+    ImGui::Text("%s", std::to_string(renderData.rdUIDrawTime).c_str());
     ImGui::SameLine();
     ImGui::Text("ms");
   }
@@ -123,19 +153,17 @@ static void renderCamera(OGLRenderData &renderData) {
   }
 }
 
-static void renderChangeShaders(OGLRenderData &renderData) {
-  if (ImGui::CollapsingHeader("Shaders")) {
-    if (ImGui::Button("Toggle Skinning")) {
-      renderData.rdGPUVertexSkinning = !renderData.rdGPUVertexSkinning;
-    }
+static void renderModelControls(OGLRenderData &renderData) {
+  ImGui::Checkbox("Draw Model", &renderData.rdDrawGltfModel);
+  ImGui::Checkbox("Draw Skeleton", &renderData.rdDrawSkeleton);
 
-    ImGui::SameLine();
-    if (!renderData.rdGPUVertexSkinning) {
-      ImGui::Text("CPU Skinning");
-    }
-    else {
-      ImGui::Text("GPU Skinning");
-    }
+  ImGui::Checkbox("GPU Vertex Skinning Method:", &renderData.rdGPUDualQuatVertexSkinning);
+  ImGui::SameLine();
+  if (renderData.rdGPUDualQuatVertexSkinning) {
+    ImGui::Text("Dual Quaternion");
+  }
+  else {
+    ImGui::Text("Linear");
   }
 }
 

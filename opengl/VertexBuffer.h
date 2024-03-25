@@ -13,6 +13,7 @@ class VertexBuffer {
   void bind();
   void unbind();
   void draw(GLuint mode, unsigned int start, unsigned int num);
+  void bindAndDraw(GLuint mode, unsigned int start, unsigned int num);
   void cleanup();
 
  private:
