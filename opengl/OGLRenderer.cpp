@@ -4,6 +4,8 @@
 #include "Logger.h"
 #include "OGLRenderer.h"
 
+#include <iostream>
+
 OGLRenderer::OGLRenderer(GLFWwindow *window) {
   mRenderData.rdWindow = window;
 }
@@ -37,7 +39,6 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   size_t uniformMatrixBufferSize = 2 * sizeof(glm::mat4);
   mUniformBuffer.init(uniformMatrixBufferSize);
   Logger::log(1, "%s: uniform buffer successfully created\n", __FUNCTION__);
-
 
   if (!mGltfShader.loadShaders("shader/gltf.vert", "shader/gltf.frag")) {
     return false;
@@ -127,8 +128,23 @@ void OGLRenderer::draw() {
                                        0.1f,
                                        100.f);
 
-
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
+
+
+
+  /* Animate */
+  mRenderData.rdClipName = mGltfModel->getClipName(mRenderData.rdAnimClip);
+  if (mRenderData.rdPlayAnimation) {
+    std::cout << "play animation true" << std::endl;
+    mGltfModel->playAnimation(mRenderData.rdAnimClip, mRenderData.rdAnimSpeed);
+  }
+  else {
+    mRenderData.rdAnimEndTime = mGltfModel->getAnimationEndTime(mRenderData.rdAnimClip);
+    mGltfModel->setAnimationFrame(mRenderData.rdAnimClip, mRenderData.rdAnimTimePosition);
+  }
+
+    std::cout << "made it here" << std::endl;
+
   std::vector<glm::mat4> matrixData;
   matrixData.push_back(mViewMatrix);
   matrixData.push_back(mProjectionMatrix);

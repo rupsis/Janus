@@ -14,6 +14,7 @@ static void renderInfo(OGLRenderData &renderData);
 static void renderTimers(OGLRenderData &renderData);
 static void renderCamera(OGLRenderData &renderData);
 static void renderChangeShaders(OGLRenderData &renderData);
+static void renderAnimationControls(OGLRenderData &renderData);
 
 void UserInterface::init(OGLRenderData &renderData) {
   IMGUI_CHECKVERSION();
@@ -59,6 +60,8 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   renderCamera(renderData);
 
   renderChangeShaders(renderData);
+
+  renderAnimationControls(renderData);
 
   ImGui::End();
 }
@@ -132,6 +135,37 @@ static void renderChangeShaders(OGLRenderData &renderData) {
     }
     else {
       ImGui::Text("GPU Skinning");
+    }
+  }
+}
+
+static void renderAnimationControls(OGLRenderData &renderData) {
+  if (ImGui::CollapsingHeader("glTF Animation")) {
+    ImGui::Text("Clip No");
+    ImGui::SameLine();
+    ImGui::SliderInt("##Clip", &renderData.rdAnimClip, 0, renderData.rdAnimClipSize - 1);
+    ImGui::Text("Clip Name: %s", renderData.rdClipName.c_str());
+    ImGui::Checkbox("Play Animation", &renderData.rdPlayAnimation);
+
+    if (!renderData.rdPlayAnimation) {
+      ImGui::BeginDisabled();
+    }
+    ImGui::Text("Speed ");
+    ImGui::SameLine();
+    ImGui::SliderFloat("##ClipSpeed", &renderData.rdAnimSpeed, 0.0f, 2.0f);
+    if (!renderData.rdPlayAnimation) {
+      ImGui::EndDisabled();
+    }
+
+    if (renderData.rdPlayAnimation) {
+      ImGui::BeginDisabled();
+    }
+    ImGui::Text("Timepos");
+    ImGui::SameLine();
+    ImGui::SliderFloat(
+        "##ClipPos", &renderData.rdAnimTimePosition, 0.0f, renderData.rdAnimEndTime);
+    if (renderData.rdPlayAnimation) {
+      ImGui::EndDisabled();
     }
   }
 }
