@@ -73,7 +73,7 @@ void GltfAnimationChannel::loadChannelData(std::shared_ptr<tinygltf::Model> mode
   // TODO add morph targets?
 }
 
-float GltfAnimationChannel::interpolatedTime(float time, int prevTimeIndex, int nextTimeIndex) {
+float GltfAnimationChannel::calculateInterpolatedTime(float time, int prevTimeIndex, int nextTimeIndex) {
   return (time - mTimings.at(prevTimeIndex)) /
          (mTimings.at(nextTimeIndex) - mTimings.at(prevTimeIndex));
 }
@@ -85,6 +85,7 @@ float GltfAnimationChannel::getMaxTime() {
 }
 
 glm::vec3 GltfAnimationChannel::getScaling(float time) {
+  std::cout << "getting scale channel" << std::endl;
   if (mScaling.size() == 0) {
     return glm::vec3(1.0f);
   }
@@ -122,8 +123,7 @@ glm::vec3 GltfAnimationChannel::getScaling(float time) {
       finalScale = mScaling.at(prevTimeIndex);
       break;
     case EInterpolationType::LINEAR: {
-      float interpolatedTime = (time - mTimings.at(prevTimeIndex)) /
-                               (mTimings.at(nextTimeIndex) - mTimings.at(prevTimeIndex));
+      float interpolatedTime = calculateInterpolatedTime(time, prevTimeIndex, nextTimeIndex);
       glm::vec3 prevScale = mScaling.at(prevTimeIndex);
       glm::vec3 nextScale = mScaling.at(nextTimeIndex);
       finalScale = prevScale + interpolatedTime * (nextScale - prevScale);
@@ -134,8 +134,7 @@ glm::vec3 GltfAnimationChannel::getScaling(float time) {
       glm::vec3 prevTangent = deltaTime * mScaling.at(prevTimeIndex * 3 + 2);
       glm::vec3 nextTangent = deltaTime * mScaling.at(nextTimeIndex * 3);
 
-      float interpolatedTime = (time - mTimings.at(prevTimeIndex)) /
-                               (mTimings.at(nextTimeIndex) - mTimings.at(prevTimeIndex));
+      float interpolatedTime = calculateInterpolatedTime(time, prevTimeIndex, nextTimeIndex);
 
       float interpolatedTimeSq = interpolatedTime * interpolatedTime;
       float interpolatedTimeCub = interpolatedTimeSq * interpolatedTime;
@@ -155,6 +154,7 @@ glm::vec3 GltfAnimationChannel::getScaling(float time) {
 }
 
 glm::vec3 GltfAnimationChannel::getTranslation(float time) {
+  std::cout << "getting translation channel" << std::endl;
   if (mTranslations.size() == 0) {
     return glm::vec3(0.0f);
   }
@@ -224,9 +224,11 @@ glm::vec3 GltfAnimationChannel::getTranslation(float time) {
 }
 
 glm::quat GltfAnimationChannel::getRotation(float time) {
+
   if (mRotations.size() == 0) {
-    return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+    return glm::identity<glm::quat>();
   }
+
 
   // if time is before our first timings point, return first point.
   if (time < mTimings.at(0)) {
@@ -238,6 +240,7 @@ glm::quat GltfAnimationChannel::getRotation(float time) {
     return mRotations.at(mRotations.size() - 1);
   }
 
+    
   int prevTimeIndex = 0;
   int nextTimeIndex = 0;
   // get two indicies, one before, and one after given time
@@ -249,10 +252,13 @@ glm::quat GltfAnimationChannel::getRotation(float time) {
     prevTimeIndex = i;
   }
 
+
   // if at last point in time, return that value
   if (prevTimeIndex == nextTimeIndex) {
     return mRotations.at(prevTimeIndex);
   }
+
+  
 
   glm::quat finalRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 

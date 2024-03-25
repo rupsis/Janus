@@ -43,5 +43,5 @@ class GltfAnimationChannel {
   void setRotations(std::vector<glm::quat> rotations);
 
   // Helper methods
-  float interpolatedTime(float time, int prevTimeIndex, int nextTimeIndex);
+  float calculateInterpolatedTime(float time, int prevTimeIndex, int nextTimeIndex);
 };

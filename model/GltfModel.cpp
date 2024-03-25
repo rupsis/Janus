@@ -7,9 +7,88 @@
 
 #include <chrono>
 #include <cmath>
+#include <iostream>
 
 #include "GltfModel.h"
 #include "Logger.h"
+
+
+bool GltfModel::loadModel(OGLRenderData &renderData,
+    std::string modelFilename, std::string textureFilename) {
+  if (!mTex.loadTexture(textureFilename, false)) {
+    Logger::log(1, "%s: texture loading failed\n", __FUNCTION__);
+    return false;
+  }
+  Logger::log(1, "%s: glTF model texture '%s' successfully loaded\n", __FUNCTION__,
+    modelFilename.c_str());
+
+  mModel = std::make_shared<tinygltf::Model>();
+
+  tinygltf::TinyGLTF gltfLoader;
+  std::string loaderErrors;
+  std::string loaderWarnings;
+  bool result = false;
+
+  result = gltfLoader.LoadASCIIFromFile(mModel.get(), &loaderErrors, &loaderWarnings,
+    modelFilename);
+
+  if (!loaderWarnings.empty()) {
+    Logger::log(1, "%s: warnings while loading glTF model:\n%s\n", __FUNCTION__,
+      loaderWarnings.c_str());
+  }
+
+  if (!loaderErrors.empty()) {
+    Logger::log(1, "%s: errors while loading glTF model:\n%s\n", __FUNCTION__,
+      loaderErrors.c_str());
+  }
+
+  if (!result) {
+    Logger::log(1, "%s error: could not load file '%s'\n", __FUNCTION__,
+      modelFilename.c_str());
+    return false;
+  }
+
+  glGenVertexArrays(1, &mVAO);
+  glBindVertexArray(mVAO);
+
+  /* extract position, normal, texture coords, and indices */
+  createVertexBuffers();
+  createIndexBuffer();
+
+  glBindVertexArray(0);
+
+  /* extract joints, weights, and invers bind matrices*/
+  getJointData();
+  getWeightData();
+  getInvBindMatrices();
+
+  /* build model tree */
+  int nodeCount = mModel->nodes.size();
+  int rootNode = mModel->scenes.at(0).nodes.at(0);
+  Logger::log(1, "%s: model has %i nodes, root node is %i\n", __FUNCTION__, nodeCount,
+    rootNode);
+
+  mNodeList.resize(nodeCount);
+
+  mRootNode = GltfNode::createRoot(rootNode);
+  mNodeList.at(rootNode) = mRootNode;
+  getNodeData(mRootNode, glm::mat4(1.0f));
+  getNodes(mRootNode);
+
+  /* get Skeleton data */
+  mSkeletonMesh = std::make_shared<OGLMesh>();
+
+  mRootNode->printTree();
+
+  /* extract animation data */
+  getAnimations();
+  renderData.rdAnimClipSize = mAnimClips.size();
+
+  renderData.rdGltfTriangleCount = getTriangleCount();
+
+  return true;
+}
+
 
 void GltfModel::createVertexBuffers() {
   // Model assumes only 1 mesh.
@@ -148,76 +227,7 @@ void GltfModel::applyCPUVertexSkinning() {
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-bool GltfModel::loadModel(OGLRenderData &renderData,
-                          std::string modelFilename,
-                          std::string textureFilename) {
-  if (!mTex.loadTexture(textureFilename, false)) {
-    Logger::log(1, "%s: texture loading failed\n", __FUNCTION__);
-    return false;
-  }
 
-  mModel = std::make_shared<tinygltf::Model>();
-
-  tinygltf::TinyGLTF gltfLoader;
-  std::string loaderErrors;
-  std::string loaderWarnings;
-  bool result = false;
-
-  result = gltfLoader.LoadASCIIFromFile(
-      mModel.get(), &loaderErrors, &loaderWarnings, modelFilename);
-
-  if (!loaderWarnings.empty()) {
-    Logger::log(
-        1, "%s: warnings while loading glTF model: \n%s\n", __FUNCTION__, loaderWarnings.c_str());
-  }
-
-  if (!loaderErrors.empty()) {
-    Logger::log(
-        1, "%s: errors while loading glTF model: \n%s\n", __FUNCTION__, loaderErrors.c_str());
-  }
-
-  if (!result) {
-    Logger::log(1, "%s error: could not load file '%s'\n", __FUNCTION__, modelFilename.c_str());
-    return false;
-  }
-
-  // Once model is loaded, create vertex buffer & index buffer.
-  glGenVertexArrays(1, &mVAO);
-  glBindVertexArray(mVAO);
-
-  /* extract position, normal, texture coords, and indices */
-  createVertexBuffers();
-  createIndexBuffer();
-
-  glBindVertexArray(0);
-
-  /* extract joints, weights, and invers bind matrices*/
-  getJointData();
-  getWeightData();
-  getInvBindMatrices();
-
-  /* build node tree from model.*/
-  int nodeCount = mModel->nodes.size();
-  int rootNode = mModel->scenes.at(0).nodes.at(0);
-
-  Logger::log(1, "%s: model has %i nodes, root nodes is %i", __FUNCTION__, nodeCount, rootNode);
-
-  mRootNode = GltfNode::createRoot(rootNode);
-  getNodeData(mRootNode, glm::mat4(1.0f));
-  getNodes(mRootNode);
-
-  /* get Skeleton data */
-  mSkeletonMesh = std::make_shared<OGLMesh>();
-
-  mRootNode->printTree();
-
-  /* extract Animation data */
-  getAnimations();
-  renderData.rdAnimClipSize = mAnimClips.size();
-
-  renderData.rdTriangleCount = getTriangleCount();
-  return true;
-}
 
 /* Getters. */
 int GltfModel::getTriangleCount() {
@@ -305,16 +315,17 @@ void GltfModel::getNodes(std::shared_ptr<GltfNode> treeNode) {
   int nodeNum = treeNode->getNodeNum();
   std::vector<int> childNodes = mModel->nodes.at(nodeNum).children;
 
-  /* Remove any children nodes with skin/mesh metadata.*/
-  auto removed = std::remove_if(childNodes.begin(), childNodes.end(), [&](int num) {
-    return mModel->nodes.at(num).skin != -1;
-  });
-  childNodes.erase(removed, childNodes.end());
+  /* remove the child node with skin/mesh metadata, confuses skeleton */
+  auto removeIt = std::remove_if(childNodes.begin(), childNodes.end(),
+    [&](int num) { return mModel->nodes.at(num).skin != -1; }
+  );
+  childNodes.erase(removeIt, childNodes.end());
 
   treeNode->addChilds(childNodes);
   glm::mat4 treeNodeMatrix = treeNode->getNodeMatrix();
 
   for (auto &childNode : treeNode->getChilds()) {
+    mNodeList.at(childNode->getNodeNum()) = childNode;
     getNodeData(childNode, treeNodeMatrix);
     getNodes(childNode);
   }
@@ -510,4 +521,5 @@ void GltfModel::cleanup() {
   glDeleteBuffers(1, &mIndexVBO);
   mTex.cleanup();
   mModel.reset();
+  mNodeList.clear();
 }

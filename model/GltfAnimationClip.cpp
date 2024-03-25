@@ -1,5 +1,7 @@
 #include "GltfAnimationClip.h"
 
+#include <iostream>
+
 GltfAnimationClip::GltfAnimationClip(std::string name) : mClipName(name) {}
 
 void GltfAnimationClip::addChannel(std::shared_ptr<tinygltf::Model> model,
@@ -11,12 +13,10 @@ void GltfAnimationClip::addChannel(std::shared_ptr<tinygltf::Model> model,
 }
 
 void GltfAnimationClip::setAnimationFrame(std::vector<std::shared_ptr<GltfNode>> nodes,
-                                          float time) {
-  // Loop through all challen in the clip and update specifed property
+    float time) {
   for (auto &channel : mAnimationChannels) {
     int targetNode = channel->getTargetNode();
-
-    switch (channel->getTargetPath()) {
+    switch(channel->getTargetPath()) {
       case ETargetPath::ROTATION:
         nodes.at(targetNode)->setRotation(channel->getRotation(time));
         break;
@@ -28,14 +28,14 @@ void GltfAnimationClip::setAnimationFrame(std::vector<std::shared_ptr<GltfNode>>
         break;
     }
   }
-
-  // once all properties are set, update trans/rot/scale matrices
+  /* update all nodes in a single run */
   for (auto &node : nodes) {
     if (node) {
       node->calculateLocalTRSMatrix();
     }
   }
 }
+
 float GltfAnimationClip::getClipEndTime() {
   return mAnimationChannels.at(0)->getMaxTime();
 }

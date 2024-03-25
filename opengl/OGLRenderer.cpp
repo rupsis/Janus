@@ -15,40 +15,54 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   mRenderData.rdWidth = width;
   mRenderData.rdHeight = height;
 
-  Logger::log(1, "%s: OpenGL Render Inti \n", __FUNCTION__);
-  // Initialize OpenGL via Glad.
+  /* initalize GLAD */
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    Logger::log(1, "%s error: failed to initialize GLAD\n", __FUNCTION__);
     return false;
   }
 
   if (!GLAD_GL_VERSION_4_6) {
+    Logger::log(1, "%s error: failed to get at least OpenGL 4.6\n", __FUNCTION__);
     return false;
   }
+
+  GLint majorVersion, minorVersion;
+  glGetIntegerv(GL_MAJOR_VERSION, &majorVersion);
+  glGetIntegerv(GL_MINOR_VERSION, &minorVersion);
+  Logger::log(1, "%s: OpenGL %d.%d initializeed\n", __FUNCTION__, majorVersion, minorVersion);
 
   if (!mFramebuffer.init(width, height)) {
+    Logger::log(1, "%s error: could not init Framebuffer\n", __FUNCTION__);
     return false;
   }
-
-  if (!mTex.loadTexture("textures/crate.png")) {
-    return false;
-  }
+  Logger::log(1, "%s: framebuffer succesfully initialized\n", __FUNCTION__);
 
   mVertexBuffer.init();
   Logger::log(1, "%s: vertex buffer successfully created\n", __FUNCTION__);
 
   size_t uniformMatrixBufferSize = 2 * sizeof(glm::mat4);
   mUniformBuffer.init(uniformMatrixBufferSize);
-  Logger::log(1, "%s: uniform buffer successfully created\n", __FUNCTION__);
+  Logger::log(1, "%s: matrix uniform buffer (size %i bytes) successfully created\n", __FUNCTION__, uniformMatrixBufferSize);
 
-  if (!mGltfShader.loadShaders("shader/gltf.vert", "shader/gltf.frag")) {
+  if (!mLineShader.loadShaders("shader/line.vert", "shader/line.frag")) {
+    Logger::log(1, "%s: line shader loading failed\n", __FUNCTION__);
     return false;
   }
-
   if (!mGltfGPUShader.loadShaders("shader/gltf_gpu.vert", "shader/gltf_gpu.frag")) {
+    Logger::log(1, "%s: gltTF GPU shader loading failed\n", __FUNCTION__);
     return false;
   }
+  if (!mGltfGPUDualQuatShader.loadShaders("shader/gltf_gpu_dquat.vert",
+      "shader/gltf_gpu_dquat.frag")) {
+    Logger::log(1, "%s: glTF GPU dual quat shader loading failed\n", __FUNCTION__);
+    return false;
+  }
+  Logger::log(1, "%s: shaders succesfully loaded\n", __FUNCTION__);
 
-  /* Enable backface culling and depth test. */
+  mUserInterface.init(mRenderData);
+  Logger::log(1, "%s: user interface initialized\n", __FUNCTION__);
+
+  /* add backface culling and depth test already here */
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
   glLineWidth(3.0);
@@ -56,21 +70,27 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   mGltfModel = std::make_shared<GltfModel>();
   std::string modelFilename = "assets/Woman.gltf";
   std::string modelTexFilename = "textures/Woman.png";
-
-  mUserInterface.init(mRenderData);
-
   if (!mGltfModel->loadModel(mRenderData, modelFilename, modelTexFilename)) {
+    Logger::log(1, "%s: loading glTF model '%s' failed\n", __FUNCTION__, modelFilename.c_str());
     return false;
   }
-
   mGltfModel->uploadIndexBuffer();
+  Logger::log(1, "%s: glTF model '%s' succesfully loaded\n", __FUNCTION__, modelFilename.c_str());
 
   size_t modelJointMatrixBufferSize = mGltfModel->getJointMatrixSize() * sizeof(glm::mat4);
   mGltfShaderStorageBuffer.init(modelJointMatrixBufferSize);
-  Logger::log(1,
-              "%s: glTF joint matrix shader storage buffer (size %i bytes) successfully created\n",
-              __FUNCTION__,
-              modelJointMatrixBufferSize);
+  Logger::log(1, "%s: glTF joint matrix shader storage buffer (size %i bytes) successfully created\n", __FUNCTION__, modelJointMatrixBufferSize);
+
+  size_t modelJointDualQuatBufferSize = mGltfModel->getJointDualQuatsSize() *
+    sizeof(glm::mat2x4);
+  mGltfDualQuatSSBuffer.init(modelJointDualQuatBufferSize);
+  Logger::log(1, "%s: glTF joint dual quaternions shader storage buffer (size %i bytes) successfully created\n", __FUNCTION__, modelJointDualQuatBufferSize);
+
+  /* valid, but emtpy */
+  mSkeletonMesh = std::make_shared<OGLMesh>();
+  Logger::log(1, "%s: skeleton mesh storage initialized\n", __FUNCTION__);
+
+  mFrameTimer.start();
 
   return true;
 }
