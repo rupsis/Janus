@@ -40,7 +40,7 @@ void VertexBuffer::uploadData(OGLMesh vertexData) {
                vertexData.vertices.size() * sizeof(OGLVertex),
                &vertexData.vertices.at(0),
                GL_DYNAMIC_DRAW);
-
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
 }
 
