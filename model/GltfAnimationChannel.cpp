@@ -87,7 +87,6 @@ float GltfAnimationChannel::getMaxTime() {
 }
 
 glm::vec3 GltfAnimationChannel::getScaling(float time) {
-  std::cout << "getting scale channel" << std::endl;
   if (mScaling.size() == 0) {
     return glm::vec3(1.0f);
   }
@@ -156,7 +155,6 @@ glm::vec3 GltfAnimationChannel::getScaling(float time) {
 }
 
 glm::vec3 GltfAnimationChannel::getTranslation(float time) {
-  std::cout << "getting translation channel" << std::endl;
   if (mTranslations.size() == 0) {
     return glm::vec3(0.0f);
   }
@@ -187,18 +185,18 @@ glm::vec3 GltfAnimationChannel::getTranslation(float time) {
     return mTranslations.at(prevTimeIndex);
   }
 
-  glm::vec3 finalTranslation = glm::vec3(0.0f);
+  glm::vec3 finalTranslate = glm::vec3(0.0f);
 
   switch (mInterType) {
     case EInterpolationType::STEP:
-      finalTranslation = mTranslations.at(prevTimeIndex);
+      finalTranslate = mTranslations.at(prevTimeIndex);
       break;
     case EInterpolationType::LINEAR: {
       float interpolatedTime = (time - mTimings.at(prevTimeIndex)) /
                                (mTimings.at(nextTimeIndex) - mTimings.at(prevTimeIndex));
       glm::vec3 prevTranslate = mTranslations.at(prevTimeIndex);
       glm::vec3 nextTranslate = mTranslations.at(nextTimeIndex);
-      finalTranslation = prevTranslate + interpolatedTime * (nextTranslate - prevTranslate);
+      finalTranslate = prevTranslate + interpolatedTime * (nextTranslate - prevTranslate);
     } break;
     case EInterpolationType::CUBICSPLINE: {
       float deltaTime = mTimings.at(nextTimeIndex) - mTimings.at(prevTimeIndex);
@@ -215,14 +213,15 @@ glm::vec3 GltfAnimationChannel::getTranslation(float time) {
       glm::vec3 prevPoint = mTranslations.at(prevTimeIndex * 3 + 1);
       glm::vec3 nextPoint = mTranslations.at(nextTimeIndex * 3 + 1);
 
-      finalTranslation = (2 * interpolatedTimeCub - 3 * interpolatedTimeSq + 1) * prevPoint +
-                         (interpolatedTimeCub - 2 * interpolatedTimeSq + interpolatedTime) *
-                             prevTangent +
-                         (-2 * interpolatedTimeCub + 3 * interpolatedTimeSq) * nextPoint +
-                         (interpolatedTimeCub - interpolatedTimeSq) * nextTangent;
+      finalTranslate = (2 * interpolatedTimeCub - 3 * interpolatedTimeSq + 1) * prevPoint +
+                       (interpolatedTimeCub - 2 * interpolatedTimeSq + interpolatedTime) *
+                           prevTangent +
+                       (-2 * interpolatedTimeCub + 3 * interpolatedTimeSq) * nextPoint +
+                       (interpolatedTimeCub - interpolatedTimeSq) * nextTangent;
     } break;
   }
-  return finalTranslation;
+  return finalTranslate;
+  ;
 }
 
 glm::quat GltfAnimationChannel::getRotation(float time) {
