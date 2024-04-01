@@ -98,22 +98,21 @@ void GltfModel::createVertexBuffers() {
     const int accessorNum = attrib.second;
 
     const tinygltf::Accessor &accessor = mModel->accessors.at(accessorNum);
-    const tinygltf::BufferView &bufferView = mModel->bufferViews[accessor.bufferView];
-    const tinygltf::Buffer &buffer = mModel->buffers[bufferView.buffer];
+    const tinygltf::BufferView &bufferView = mModel->bufferViews.at(accessor.bufferView);
+    const tinygltf::Buffer &buffer = mModel->buffers.at(bufferView.buffer);
 
-    // skip over attributes not containing Position, normals, or texture coordinates.
     if ((attribType.compare("POSITION") != 0) && (attribType.compare("NORMAL") != 0) &&
-        (attribType.compare("TEXCOORD_0") != 0))
+        (attribType.compare("TEXCOORD_0") != 0) &&
+        (attribType.compare("JOINTS_0") != 0 && (attribType.compare("WEIGHTS_0") != 0)))
     {
+      Logger::log(1, "%s: skipping attribute type %s\n", __FUNCTION__, attribType.c_str());
       continue;
     }
 
     Logger::log(
         1, "%s: data for %s uses accessor %i\n", __FUNCTION__, attribType.c_str(), accessorNum);
-
     if (attribType.compare("POSITION") == 0) {
       int numPositionEntries = accessor.count;
-      mAlteredPositions.resize(numPositionEntries);
       Logger::log(1, "%s: loaded %i vertices from glTF file\n", __FUNCTION__, numPositionEntries);
     }
 
@@ -134,8 +133,11 @@ void GltfModel::createVertexBuffers() {
         dataSize = 4;
         break;
       default:
-        Logger::log(
-            1, "%s error: accessor %i uses data size %i\n", __FUNCTION__, accessorNum, dataSize);
+        Logger::log(1,
+                    "%s error: accessor %i uses data size %i\n",
+                    __FUNCTION__,
+                    accessorNum,
+                    accessor.type);
         break;
     }
 
@@ -144,19 +146,25 @@ void GltfModel::createVertexBuffers() {
       case TINYGLTF_COMPONENT_TYPE_FLOAT:
         dataType = GL_FLOAT;
         break;
+      case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+        dataType = GL_UNSIGNED_SHORT;
+        break;
       default:
         Logger::log(1,
                     "%s error: accessor %i uses unknown data type %i\n",
                     __FUNCTION__,
                     accessorNum,
-                    dataType);
+                    accessor.componentType);
         break;
     }
 
-    glGenBuffers(1, &mVertexVBO[attributes[attribType]]);
-    glBindBuffer(GL_ARRAY_BUFFER, mVertexVBO[attributes[attribType]]);
-    glVertexAttribPointer(attributes[attribType], dataSize, dataType, GL_FALSE, 0, (void *)0);
-    glEnableVertexAttribArray(attributes[attribType]);
+    /* buffers for position, normal and tex coordinates */
+    glGenBuffers(1, &mVertexVBO.at(attributes.at(attribType)));
+    glBindBuffer(GL_ARRAY_BUFFER, mVertexVBO.at(attributes.at(attribType)));
+
+    glVertexAttribPointer(attributes.at(attribType), dataSize, dataType, GL_FALSE, 0, (void *)0);
+    glEnableVertexAttribArray(attributes.at(attribType));
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
 }
