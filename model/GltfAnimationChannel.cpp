@@ -256,13 +256,11 @@ glm::quat GltfAnimationChannel::getRotation(float time) {
     return mRotations.at(prevTimeIndex);
   }
 
-  glm::quat finalRotate;
-  = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+  glm::quat finalRotate = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
   switch (mInterType) {
     case EInterpolationType::STEP:
-      finalRotate;
-      = mRotations.at(prevTimeIndex);
+      finalRotate = mRotations.at(prevTimeIndex);
       break;
     case EInterpolationType::LINEAR: {
       float interpolatedTime = (time - mTimings.at(prevTimeIndex)) /
