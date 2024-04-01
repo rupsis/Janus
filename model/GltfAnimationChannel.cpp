@@ -8,15 +8,15 @@ void GltfAnimationChannel::loadChannelData(std::shared_ptr<tinygltf::Model> mode
   mTargetNode = channel.target_node;
 
   // extract input data from GLTF file
-  const tinygltf::Accessor& inputAccessor = model->accessors.at(anim.samplers.at(channel.sampler).input);
+  const tinygltf::Accessor &inputAccessor = model->accessors.at(
+      anim.samplers.at(channel.sampler).input);
   const tinygltf::BufferView &inputBufferView = model->bufferViews.at(inputAccessor.bufferView);
   const tinygltf::Buffer &inputBuffer = model->buffers.at(inputBufferView.buffer);
 
-   // Allocate memory for raw time values
+  // Allocate memory for raw time values
   std::vector<float> timings;
   timings.resize(inputAccessor.count);
 
- 
   std::memcpy(timings.data(),
               &inputBuffer.data.at(0) + inputBufferView.byteOffset,
               inputBufferView.byteLength);
@@ -73,7 +73,9 @@ void GltfAnimationChannel::loadChannelData(std::shared_ptr<tinygltf::Model> mode
   // TODO add morph targets?
 }
 
-float GltfAnimationChannel::calculateInterpolatedTime(float time, int prevTimeIndex, int nextTimeIndex) {
+float GltfAnimationChannel::calculateInterpolatedTime(float time,
+                                                      int prevTimeIndex,
+                                                      int nextTimeIndex) {
   return (time - mTimings.at(prevTimeIndex)) /
          (mTimings.at(nextTimeIndex) - mTimings.at(prevTimeIndex));
 }
@@ -229,7 +231,6 @@ glm::quat GltfAnimationChannel::getRotation(float time) {
     return glm::identity<glm::quat>();
   }
 
-
   // if time is before our first timings point, return first point.
   if (time < mTimings.at(0)) {
     return mRotations.at(0);
@@ -240,7 +241,6 @@ glm::quat GltfAnimationChannel::getRotation(float time) {
     return mRotations.at(mRotations.size() - 1);
   }
 
-    
   int prevTimeIndex = 0;
   int nextTimeIndex = 0;
   // get two indicies, one before, and one after given time
@@ -252,13 +252,10 @@ glm::quat GltfAnimationChannel::getRotation(float time) {
     prevTimeIndex = i;
   }
 
-
   // if at last point in time, return that value
   if (prevTimeIndex == nextTimeIndex) {
     return mRotations.at(prevTimeIndex);
   }
-
-  
 
   glm::quat finalRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
