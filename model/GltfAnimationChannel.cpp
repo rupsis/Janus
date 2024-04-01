@@ -256,18 +256,21 @@ glm::quat GltfAnimationChannel::getRotation(float time) {
     return mRotations.at(prevTimeIndex);
   }
 
-  glm::quat finalRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+  glm::quat finalRotate;
+  = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
   switch (mInterType) {
     case EInterpolationType::STEP:
-      finalRotation = mRotations.at(prevTimeIndex);
+      finalRotate;
+      = mRotations.at(prevTimeIndex);
       break;
     case EInterpolationType::LINEAR: {
       float interpolatedTime = (time - mTimings.at(prevTimeIndex)) /
                                (mTimings.at(nextTimeIndex) - mTimings.at(prevTimeIndex));
       glm::quat prevRotate = mRotations.at(prevTimeIndex);
       glm::quat nextRotate = mRotations.at(nextTimeIndex);
-      finalRotation = prevRotate + interpolatedTime * (nextRotate - prevRotate);
+
+      finalRotate = glm::slerp(prevRotate, nextRotate, interpolatedTime);
     } break;
     case EInterpolationType::CUBICSPLINE: {
       float deltaTime = mTimings.at(nextTimeIndex) - mTimings.at(prevTimeIndex);
@@ -284,14 +287,15 @@ glm::quat GltfAnimationChannel::getRotation(float time) {
       glm::quat prevPoint = mRotations.at(prevTimeIndex * 3 + 1);
       glm::quat nextPoint = mRotations.at(nextTimeIndex * 3 + 1);
 
-      finalRotation = (2 * interpolatedTimeCub - 3 * interpolatedTimeSq + 1) * prevPoint +
-                      (interpolatedTimeCub - 2 * interpolatedTimeSq + interpolatedTime) *
-                          prevTangent +
-                      (-2 * interpolatedTimeCub + 3 * interpolatedTimeSq) * nextPoint +
-                      (interpolatedTimeCub - interpolatedTimeSq) * nextTangent;
+      finalRotate = (2 * interpolatedTimeCub - 3 * interpolatedTimeSq + 1) * prevPoint +
+                    (interpolatedTimeCub - 2 * interpolatedTimeSq + interpolatedTime) *
+                        prevTangent +
+                    (-2 * interpolatedTimeCub + 3 * interpolatedTimeSq) * nextPoint +
+                    (interpolatedTimeCub - interpolatedTimeSq) * nextTangent;
     } break;
   }
-  return finalRotation;
+  return finalRotate;
+  ;
 }
 
 /* Setters */
