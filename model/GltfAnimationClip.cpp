@@ -22,7 +22,7 @@ void GltfAnimationClip::blendAnimationFrame(std::vector<std::shared_ptr<GltfNode
         nodes.at(targetNode)->blendRotation(channel->getRotation(time), blendFactor);
         break;
       case ETargetPath::TRANSLATION:
-        nodes.at(targetNode)->blendRotation(channel->getTranslation(time), blendFactor);
+        nodes.at(targetNode)->blendTranslation(channel->getTranslation(time), blendFactor);
         break;
       case ETargetPath::SCALE:
         nodes.at(targetNode)->blendScale(channel->getScaling(time), blendFactor);
