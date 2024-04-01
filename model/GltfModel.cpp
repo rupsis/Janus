@@ -183,12 +183,12 @@ void GltfModel::uploadVertexBuffers() {
    * accessor 1 = normal data
    * accessor 2 = texture coordinates
    */
-  for (int i = 0; i < 3; ++i) {
-    const tinygltf::Accessor &accessor = mModel->accessors.at(i);
-    const tinygltf::BufferView &bufferView = mModel->bufferViews[accessor.bufferView];
-    const tinygltf::Buffer &buffer = mModel->buffers[bufferView.buffer];
+  for (int i = 0; i < 5; ++i) {
+    const tinygltf::Accessor &accessor = mModel->accessors.at(mAttribAccessors.at(i));
+    const tinygltf::BufferView &bufferView = mModel->bufferViews.at(accessor.bufferView);
+    const tinygltf::Buffer &buffer = mModel->buffers.at(bufferView.buffer);
 
-    glBindBuffer(GL_ARRAY_BUFFER, mVertexVBO[i]);
+    glBindBuffer(GL_ARRAY_BUFFER, mVertexVBO.at(i));
     glBufferData(GL_ARRAY_BUFFER,
                  bufferView.byteLength,
                  &buffer.data.at(0) + bufferView.byteOffset,
