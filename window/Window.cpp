@@ -40,11 +40,6 @@ bool Window::init(unsigned int width, unsigned int height, std::string title) {
   glfwMakeContextCurrent(mWindow);
 
   mRenderer = std::make_unique<OGLRenderer>(mWindow);
-  if (!mRenderer->init(width, height)) {
-    glfwTerminate();
-    Logger::log(1, "%s error: Could not init OpenGL\n", __FUNCTION__);
-    return false;
-  }
 
   glfwSetWindowUserPointer(mWindow, mRenderer.get());
   glfwSetWindowSizeCallback(mWindow, [](GLFWwindow *win, int width, int height) {
@@ -67,8 +62,11 @@ bool Window::init(unsigned int width, unsigned int height, std::string title) {
     renderer->handleMousePositionEvents(xPos, yPos);
   });
 
-  mModel = std::make_unique<Model>();
-  mModel->init();
+  if (!mRenderer->init(width, height)) {
+    glfwTerminate();
+    Logger::log(1, "%s error: Could not init OpenGL\n", __FUNCTION__);
+    return false;
+  }
 
   Logger::log(1, "%s: Window successfully initialized\n", __FUNCTION__);
 
@@ -78,9 +76,6 @@ bool Window::init(unsigned int width, unsigned int height, std::string title) {
 void Window::mainLoop() {
   // Wait for vertical sync, else flickering / tearing might occur.
   glfwSwapInterval(1);
-  float color = 0.0f;
-
-  mRenderer->uploadData(mModel->getVertexData());
 
   while (!glfwWindowShouldClose(mWindow)) {
     mRenderer->draw();

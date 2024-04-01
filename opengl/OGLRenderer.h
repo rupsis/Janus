@@ -6,23 +6,22 @@
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "Camera.h"
 #include "Framebuffer.h"
+#include "GltfModel.h"
 #include "Shader.h"
+#include "ShaderStorageBuffer.h"
 #include "Texture.h"
-
-#include "SharedStorageBuffer.h"
+#include "Timer.h"
 #include "UniformBuffer.h"
 #include "UserInterface.h"
 #include "VertexBuffer.h"
-
-/* Tools */
-#include "Camera.h"
-#include "Timer.h"
-
-#include "GltfModel.h"
 
 #include "OGLRenderData.h"
 
@@ -50,12 +49,18 @@ class OGLRenderer {
   UserInterface mUserInterface{};
 
   /* Model. */
-  Shader mGltfShader{};
-  Shader mGltfGPUShader{};
   std::shared_ptr<GltfModel> mGltfModel = nullptr;
   bool mModelUploadRequired = true;
 
+  std::shared_ptr<OGLMesh> mSkeletonMesh = nullptr;
+  unsigned int mSkeletonLineIndexCount = 0;
+
   /* Shaders. */
+  Shader mGltfShader{};
+  Shader mGltfGPUShader{};
+  Shader mGltfGPUDualQuatShader{};
+
+  Shader mLineShader{};
   Shader mBasicShader{};
   Shader mChangedShader{};
 
@@ -66,13 +71,21 @@ class OGLRenderer {
   Framebuffer mFramebuffer{};
   VertexBuffer mVertexBuffer{};
   UniformBuffer mUniformBuffer{};
-  SharedStorageBuffer mGltfShaderStorageBuffer{};
+  ShaderStorageBuffer mGltfShaderStorageBuffer{};
+  ShaderStorageBuffer mGltfDualQuatSSBuffer{};
 
   /* UniformBuffer Data. */
   glm::mat4 mViewMatrix = glm::mat4(1.0f);
   glm::mat4 mProjectionMatrix = glm::mat4(1.0f);
 
+  /* Timers*/
+  Timer mFrameTimer{};
+  Timer mMatrixGenerateTimer{};
+  Timer mUploadToVBOTimer{};
+  Timer mUploadToUBOTimer{};
   Timer mUIGenerateTimer{};
+  Timer mUIDrawTimer{};
+
   Camera mCamera{};
 
   /* Mouse values. */
@@ -81,5 +94,5 @@ class OGLRenderer {
   int mMouseYPos = 0;
 
   // Difference between current & previous draw() calls
-  double lastTickTime = 0.0;
+  double mLastTickTime = 0.0;
 };

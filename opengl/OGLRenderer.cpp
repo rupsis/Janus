@@ -1,8 +1,12 @@
+#include <algorithm>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui_impl_glfw.h>
 
 #include "Logger.h"
 #include "OGLRenderer.h"
+
+#include <iostream>
 
 OGLRenderer::OGLRenderer(GLFWwindow *window) {
   mRenderData.rdWindow = window;
@@ -13,41 +17,58 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   mRenderData.rdWidth = width;
   mRenderData.rdHeight = height;
 
-  Logger::log(1, "%s: OpenGL Render Inti \n", __FUNCTION__);
-  // Initialize OpenGL via Glad.
+  /* initalize GLAD */
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    Logger::log(1, "%s error: failed to initialize GLAD\n", __FUNCTION__);
     return false;
   }
 
   if (!GLAD_GL_VERSION_4_6) {
+    Logger::log(1, "%s error: failed to get at least OpenGL 4.6\n", __FUNCTION__);
     return false;
   }
+
+  GLint majorVersion, minorVersion;
+  glGetIntegerv(GL_MAJOR_VERSION, &majorVersion);
+  glGetIntegerv(GL_MINOR_VERSION, &minorVersion);
+  Logger::log(1, "%s: OpenGL %d.%d initializeed\n", __FUNCTION__, majorVersion, minorVersion);
 
   if (!mFramebuffer.init(width, height)) {
+    Logger::log(1, "%s error: could not init Framebuffer\n", __FUNCTION__);
     return false;
   }
-
-  if (!mTex.loadTexture("textures/crate.png")) {
-    return false;
-  }
+  Logger::log(1, "%s: framebuffer succesfully initialized\n", __FUNCTION__);
 
   mVertexBuffer.init();
   Logger::log(1, "%s: vertex buffer successfully created\n", __FUNCTION__);
 
   size_t uniformMatrixBufferSize = 2 * sizeof(glm::mat4);
   mUniformBuffer.init(uniformMatrixBufferSize);
-  Logger::log(1, "%s: uniform buffer successfully created\n", __FUNCTION__);
+  Logger::log(1,
+              "%s: matrix uniform buffer (size %i bytes) successfully created\n",
+              __FUNCTION__,
+              uniformMatrixBufferSize);
 
-
-  if (!mGltfShader.loadShaders("shader/gltf.vert", "shader/gltf.frag")) {
+  if (!mLineShader.loadShaders("shader/line.vert", "shader/line.frag")) {
+    Logger::log(1, "%s: line shader loading failed\n", __FUNCTION__);
     return false;
   }
-
   if (!mGltfGPUShader.loadShaders("shader/gltf_gpu.vert", "shader/gltf_gpu.frag")) {
+    Logger::log(1, "%s: gltTF GPU shader loading failed\n", __FUNCTION__);
     return false;
   }
+  if (!mGltfGPUDualQuatShader.loadShaders("shader/gltf_gpu_dquat.vert",
+                                          "shader/gltf_gpu_dquat.frag"))
+  {
+    Logger::log(1, "%s: glTF GPU dual quat shader loading failed\n", __FUNCTION__);
+    return false;
+  }
+  Logger::log(1, "%s: shaders succesfully loaded\n", __FUNCTION__);
 
-  /* Enable backface culling and depth test. */
+  mUserInterface.init(mRenderData);
+  Logger::log(1, "%s: user interface initialized\n", __FUNCTION__);
+
+  /* add backface culling and depth test already here */
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
   glLineWidth(3.0);
@@ -55,14 +76,12 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   mGltfModel = std::make_shared<GltfModel>();
   std::string modelFilename = "assets/Woman.gltf";
   std::string modelTexFilename = "textures/Woman.png";
-
-  mUserInterface.init(mRenderData);
-
   if (!mGltfModel->loadModel(mRenderData, modelFilename, modelTexFilename)) {
+    Logger::log(1, "%s: loading glTF model '%s' failed\n", __FUNCTION__, modelFilename.c_str());
     return false;
   }
-
   mGltfModel->uploadIndexBuffer();
+  Logger::log(1, "%s: glTF model '%s' succesfully loaded\n", __FUNCTION__, modelFilename.c_str());
 
   size_t modelJointMatrixBufferSize = mGltfModel->getJointMatrixSize() * sizeof(glm::mat4);
   mGltfShaderStorageBuffer.init(modelJointMatrixBufferSize);
@@ -71,101 +90,158 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
               __FUNCTION__,
               modelJointMatrixBufferSize);
 
+  size_t modelJointDualQuatBufferSize = mGltfModel->getJointDualQuatsSize() * sizeof(glm::mat2x4);
+  mGltfDualQuatSSBuffer.init(modelJointDualQuatBufferSize);
+  Logger::log(1,
+              "%s: glTF joint dual quaternions shader storage buffer (size %i bytes) successfully "
+              "created\n",
+              __FUNCTION__,
+              modelJointDualQuatBufferSize);
+
+  /* valid, but emtpy */
+  mSkeletonMesh = std::make_shared<OGLMesh>();
+  Logger::log(1, "%s: skeleton mesh storage initialized\n", __FUNCTION__);
+
+  mFrameTimer.start();
+
   return true;
 }
 
 void OGLRenderer::setSize(unsigned int width, unsigned int height) {
+  /* handle minimize */
+  if (width == 0 || height == 0) {
+    return;
+  }
+
+  mRenderData.rdWidth = width;
+  mRenderData.rdHeight = height;
+
   mFramebuffer.resize(width, height);
   glViewport(0, 0, width, height);
+
+  Logger::log(1, "%s: resized window to %dx%d\n", __FUNCTION__, width, height);
 }
 
 void OGLRenderer::uploadData(OGLMesh vertexData) {
-  Logger::log(1, "%s: OpenGL Render uploadData \n", __FUNCTION__);
-  mRenderData.rdTriangleCount = vertexData.vertices.size();
   mVertexBuffer.uploadData(vertexData);
 }
 
 void OGLRenderer::draw() {
-  Logger::log(1, "%s: OpenGL Render draw \n", __FUNCTION__);
-
-  // TODO add in the upload to VBO timer
-
-  /* upload required data only when switching GPU and CPU */
-  static bool lastGPURenderState = mRenderData.rdGPUVertexSkinning;
-
-  if (lastGPURenderState != mRenderData.rdGPUVertexSkinning) {
-    mModelUploadRequired = true;
-    lastGPURenderState = mRenderData.rdGPUVertexSkinning;
-  }
-  if (mModelUploadRequired) {
-    mGltfModel->uploadVertexBuffers();
-    mModelUploadRequired = false;
+  /* handle minimize */
+  while (mRenderData.rdWidth == 0 || mRenderData.rdHeight == 0) {
+    glfwGetFramebufferSize(mRenderData.rdWindow, &mRenderData.rdWidth, &mRenderData.rdHeight);
+    glfwWaitEvents();
   }
 
-  if (!mRenderData.rdGPUVertexSkinning) {
-    /* glTF vertex skinning, overwrites position buffer, needs upload on every frame */
-    mGltfModel->applyCPUVertexSkinning();
-  }
-
+  /* get time difference for movement */
   double tickTime = glfwGetTime();
-  mRenderData.rdTickDiff = tickTime - lastTickTime;
+  mRenderData.rdTickDiff = tickTime - mLastTickTime;
 
-  static float prevFrameStartTime = 0.0f;
-  float frameStartTime = glfwGetTime();
+  mRenderData.rdFrameTime = mFrameTimer.stop();
+  mFrameTimer.start();
 
   handleMovementKeys();
 
-  // Bind buffer to let us receive vertex data.
+  /* draw to framebuffer */
   mFramebuffer.bind();
-  glClearColor(0.1f, 0.1f, 0.1f, 0.1f);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_CULL_FACE);
 
+  glClearColor(0.25f, 0.25f, 0.25f, 1.0f);
+  glClearDepth(1.0f);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  mMatrixGenerateTimer.start();
   mProjectionMatrix = glm::perspective(glm::radians(static_cast<float>(mRenderData.rdFieldOfView)),
                                        static_cast<float>(mRenderData.rdWidth) /
                                            static_cast<float>(mRenderData.rdHeight),
-                                       0.1f,
-                                       100.f);
-
+                                       0.01f,
+                                       50.0f);
 
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
+
+  /* animate */
+  mRenderData.rdClipName = mGltfModel->getClipName(mRenderData.rdAnimClip);
+  if (mRenderData.rdPlayAnimation) {
+    mGltfModel->playAnimation(mRenderData.rdAnimClip, mRenderData.rdAnimSpeed);
+  }
+  else {
+    mRenderData.rdAnimEndTime = mGltfModel->getAnimationEndTime(mRenderData.rdAnimClip);
+    mGltfModel->setAnimationFrame(mRenderData.rdAnimClip, mRenderData.rdAnimTimePosition);
+  }
+
+  /* get gltTF skeleton */
+  if (mRenderData.rdDrawSkeleton) {
+    mSkeletonMesh = mGltfModel->getSkeleton();
+  }
+  mRenderData.rdMatrixGenerateTime = mMatrixGenerateTimer.stop();
+
+  mUploadToUBOTimer.start();
   std::vector<glm::mat4> matrixData;
   matrixData.push_back(mViewMatrix);
   matrixData.push_back(mProjectionMatrix);
   mUniformBuffer.uploadUboData(matrixData, 0);
 
-  if (mRenderData.rdGPUVertexSkinning) {
-    mGltfShaderStorageBuffer.uploadSsboData(mGltfModel->getJointMatrices(), 1);
-  }
-
-  mTex.bind();
-  mVertexBuffer.bind();
-  mVertexBuffer.draw(GL_TRIANGLES, 0, mRenderData.rdTriangleCount);
-  mVertexBuffer.unbind();
-  mTex.unbind();
-
-  /* draw the glTF model */
-  if (mRenderData.rdGPUVertexSkinning) {
-    mGltfGPUShader.use();
+  if (mRenderData.rdGPUDualQuatVertexSkinning) {
+    mGltfDualQuatSSBuffer.uploadSsboData(mGltfModel->getJointDualQuats(), 2);
   }
   else {
-    mGltfShader.use();
+    mGltfShaderStorageBuffer.uploadSsboData(mGltfModel->getJointMatrices(), 1);
+  }
+  mRenderData.rdUploadToUBOTime = mUploadToUBOTimer.stop();
+
+  /* upload vertex data */
+  mUploadToVBOTimer.start();
+
+  if (mRenderData.rdDrawSkeleton) {
+    uploadData(*mSkeletonMesh);
   }
 
-  mGltfModel->draw();
+  if (mModelUploadRequired) {
+    mGltfModel->uploadVertexBuffers();
+    mModelUploadRequired = false;
+  }
+
+  mRenderData.rdUploadToVBOTime = mUploadToVBOTimer.stop();
+
+  if (mRenderData.rdDrawSkeleton) {
+    mSkeletonLineIndexCount = mSkeletonMesh->vertices.size();
+  }
+  else {
+    mSkeletonLineIndexCount = 0;
+  }
+
+  /* draw the glTF model */
+  if (mRenderData.rdDrawGltfModel) {
+    if (mRenderData.rdGPUDualQuatVertexSkinning) {
+      mGltfGPUDualQuatShader.use();
+    }
+    else {
+      mGltfGPUShader.use();
+    }
+    mGltfModel->draw();
+  }
+
+  /* draw the skeleton last, disable depth test to overlay */
+  if (mSkeletonLineIndexCount > 0 && mRenderData.rdDrawSkeleton) {
+    glDisable(GL_DEPTH_TEST);
+    mLineShader.use();
+    mVertexBuffer.bindAndDraw(GL_LINES, 0, mSkeletonLineIndexCount);
+    glEnable(GL_DEPTH_TEST);
+  }
 
   mFramebuffer.unbind();
+
+  /* blit color buffer to screen */
   mFramebuffer.drawToScreen();
 
   mUIGenerateTimer.start();
   mUserInterface.createFrame(mRenderData);
   mRenderData.rdUIGenerateTime = mUIGenerateTimer.stop();
-  mUserInterface.render();
 
-  //  Calculate the FPS
-  mRenderData.rdFrameTime = frameStartTime - prevFrameStartTime;
-  prevFrameStartTime = frameStartTime;
-  lastTickTime = tickTime;
+  mUIDrawTimer.start();
+  mUserInterface.render();
+  mRenderData.rdUIDrawTime = mUIDrawTimer.stop();
+
+  mLastTickTime = tickTime;
 }
 
 void OGLRenderer::cleanup() {
