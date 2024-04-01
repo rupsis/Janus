@@ -175,6 +175,12 @@ static void renderAnimationControls(OGLRenderData &renderData) {
     ImGui::Text("Clip Name: %s", renderData.rdClipName.c_str());
     ImGui::Checkbox("Play Animation", &renderData.rdPlayAnimation);
 
+    if (ImGui::CollapsingHeader("glTF Animation Blending")) {
+      ImGui::Text("Blend Factor");
+      ImGui::SameLine();
+      ImGui::SliderFloat("##BlendFactor", &renderData.rdAnimBlendFactor, 0.0f, 1.0f);
+    }
+
     if (!renderData.rdPlayAnimation) {
       ImGui::BeginDisabled();
     }

@@ -12,19 +12,20 @@ void GltfAnimationClip::addChannel(std::shared_ptr<tinygltf::Model> model,
   mAnimationChannels.push_back(chan);
 }
 
-void GltfAnimationClip::setAnimationFrame(std::vector<std::shared_ptr<GltfNode>> nodes,
-                                          float time) {
+void GltfAnimationClip::blendAnimationFrame(std::vector<std::shared_ptr<GltfNode>> nodes,
+                                            float time,
+                                            float blendFactor) {
   for (auto &channel : mAnimationChannels) {
     int targetNode = channel->getTargetNode();
     switch (channel->getTargetPath()) {
       case ETargetPath::ROTATION:
-        nodes.at(targetNode)->setRotation(channel->getRotation(time));
+        nodes.at(targetNode)->blendRotation(channel->getRotation(time), blendFactor);
         break;
       case ETargetPath::TRANSLATION:
-        nodes.at(targetNode)->setTranslation(channel->getTranslation(time));
+        nodes.at(targetNode)->blendRotation(channel->getTranslation(time), blendFactor);
         break;
       case ETargetPath::SCALE:
-        nodes.at(targetNode)->setScale(channel->getScaling(time));
+        nodes.at(targetNode)->blendScale(channel->getScaling(time), blendFactor);
         break;
     }
   }

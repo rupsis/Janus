@@ -56,6 +56,7 @@ struct OGLRenderData {
 
   /* Animation */
   bool rdPlayAnimation = true;
+  float rdAnimBlendFactor = 1.0f;
   std::string rdClipName = "None";
   int rdAnimClip = 0;
   int rdAnimClipSize = 0;

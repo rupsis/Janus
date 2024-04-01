@@ -29,8 +29,8 @@ class GltfModel {
   std::vector<glm::mat2x4> getJointDualQuats();
 
   /* Animations */
-  void playAnimation(int animNum, float speedDiver);
-  void setAnimationFrame(int animNumber, float time);
+  void playAnimation(int animNum, float speedDiver, float blendFactor);
+  void blendAnimationFrame(int animNumber, float time, float blendFactor);
   float getAnimationEndTime(int animNum);
   std::string getClipName(int animNum);
   void getAnimations();

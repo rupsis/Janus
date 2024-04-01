@@ -1,6 +1,8 @@
 #include "GltfNode.h"
 #include "Logger.h"
 
+#include <algorithm>
+
 std::shared_ptr<GltfNode> GltfNode::createRoot(int rootNodeNum) {
   std::shared_ptr<GltfNode> mParentNode = std::make_shared<GltfNode>();
   mParentNode->mNodeNum = rootNodeNum;
@@ -26,6 +28,8 @@ int GltfNode::getNodeNum() {
 
 void GltfNode::setScale(glm::vec3 scale) {
   mScale = scale;
+  // Set default blend scale.
+  mBlendScale = scale;
 }
 
 void GltfNode::setNodeName(std::string name) {
@@ -34,18 +38,37 @@ void GltfNode::setNodeName(std::string name) {
 
 void GltfNode::setTranslation(glm::vec3 translation) {
   mTranslation = translation;
+  // Set default blend translation.
+  mBlendTranslation = translation;
 }
 
 void GltfNode::setRotation(glm::quat rotation) {
   mRotation = rotation;
+  // Set default blend rotation.
+  mBlendRotation = rotation;
+}
+
+void GltfNode::blendScale(glm::vec3 scale, float blendFactor) {
+  float factor = std::clamp(blendFactor, 0.0f, 1.0f);
+  mBlendScale = scale * factor + mScale * (1.0f - factor);
+}
+
+void GltfNode::blendTranslation(glm::vec3 translation, float blendFactor) {
+  float factor = std::clamp(blendFactor, 0.0f, 1.0f);
+  mBlendTranslation = translation * factor + mTranslation * (1.0f - factor);
+}
+
+void GltfNode::blendRotation(glm::quat rotation, float blendFactor) {
+  float factor = std::clamp(blendFactor, 0.0f, 1.0f);
+  mBlendRotation = glm::normalize(glm::slerp(mRotation, rotation, factor));
 }
 
 void GltfNode::calculateLocalTRSMatrix() {
 
   // TRS: Translation * Rotation * Scale;
-  glm::mat4 sMatrix = glm::scale(glm::mat4(1.0f), mScale);
-  glm::mat4 rMatrix = glm::mat4_cast(mRotation);
-  glm::mat4 tMatrix = glm::translate(glm::mat4(1.0f), mTranslation);
+  glm::mat4 sMatrix = glm::scale(glm::mat4(1.0f), mBlendScale);
+  glm::mat4 rMatrix = glm::mat4_cast(mBlendRotation);
+  glm::mat4 tMatrix = glm::translate(glm::mat4(1.0f), mBlendTranslation);
   mLocalTRSMatrix = tMatrix * rMatrix * sMatrix;
 }
 
