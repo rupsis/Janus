@@ -13,10 +13,10 @@ void GltfAnimationClip::addChannel(std::shared_ptr<tinygltf::Model> model,
 }
 
 void GltfAnimationClip::setAnimationFrame(std::vector<std::shared_ptr<GltfNode>> nodes,
-    float time) {
+                                          float time) {
   for (auto &channel : mAnimationChannels) {
     int targetNode = channel->getTargetNode();
-    switch(channel->getTargetPath()) {
+    switch (channel->getTargetPath()) {
       case ETargetPath::ROTATION:
         nodes.at(targetNode)->setRotation(channel->getRotation(time));
         break;
