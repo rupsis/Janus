@@ -30,10 +30,17 @@ class GltfModel {
 
   /* Animations */
   void playAnimation(int animNum, float speedDiver, float blendFactor);
+  void playAnimation(int sourceAnimNum, int destAnimNum, float speedDivider, float blendFactor);
   void blendAnimationFrame(int animNumber, float time, float blendFactor);
+  void crossBlendAnimationFrame(int sourceAnimNumber,
+                                int destAnimNumber,
+                                float time,
+                                float blendFactor);
   float getAnimationEndTime(int animNum);
   std::string getClipName(int animNum);
   void getAnimations();
+
+  void resetNodeData();
 
  private:
   void createVertexBuffers();
@@ -47,6 +54,7 @@ class GltfModel {
   void getInvBindMatrices();
   void getNodes(std::shared_ptr<GltfNode> treeNode);
   void getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
+  void resetNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
   void updateNodeMatrices(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
   void updateJointMatricesAndQuats(std::shared_ptr<GltfNode> treeNode);
 
