@@ -161,9 +161,6 @@ void OGLRenderer::draw() {
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
 
   /* animate */
-  mRenderData.rdClipName = mGltfModel->getClipName(mRenderData.rdAnimClip);
-  mRenderData.rdCrossBlendDestClipName = mGltfModel->getClipName(
-      mRenderData.rdCrossBlendDestAnimClip);
 
   static bool blendingChanged = mRenderData.rdCrossBlending;
 
@@ -180,7 +177,6 @@ void OGLRenderer::draw() {
   if (skelSplitNode != mRenderData.rdSkelSplitNode) {
     mGltfModel->setSkeletonSplitNode(mRenderData.rdSkelSplitNode);
     skelSplitNode = mRenderData.rdSkelSplitNode;
-    mRenderData.rdSkelSplitNodeName = mGltfModel->getNodeName(mRenderData.rdSkelSplitNode);
     mGltfModel->resetNodeData();
   }
 

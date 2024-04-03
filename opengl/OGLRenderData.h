@@ -57,7 +57,7 @@ struct OGLRenderData {
   /* Animation */
   bool rdPlayAnimation = true;
   float rdAnimBlendFactor = 1.0f;
-  std::string rdClipName = "None";
+  std::vector<std::string> rdClipNames{};
   int rdAnimClip = 0;
   int rdAnimClipSize = 0;
   float rdAnimSpeed = 1.0f;
@@ -66,11 +66,10 @@ struct OGLRenderData {
 
   bool rdCrossBlending = false;
   int rdCrossBlendDestAnimClip = 0;
-  std::string rdCrossBlendDestClipName = "None";
   float rdAnimCrossBlendFactor = 0.0f;
 
   int rdModelNodeCount = 0;
   bool rdAdditiveBlending = false;
   int rdSkelSplitNode = 0;
-  std::string rdSkelSplitNodeName = "None";
+  std::vector<std::string> rdSkelSplitNodeNames{};
 };

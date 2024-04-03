@@ -47,6 +47,21 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
     return false;
   }
 
+  /* Load up the clip names for the UI.*/
+  for (const auto &clip : mAnimClips) {
+    renderData.rdClipNames.push_back(clip->getClipName());
+  }
+
+  /* Load up nodes names for the UI.*/
+  for (const auto &node : mNodeList) {
+    if (node) {
+      renderData.rdSkelSplitNodeNames.push_back(node->getNodeName());
+    }
+    else {
+      renderData.rdSkelSplitNodeNames.push_back("(Invalid)");
+    }
+  }
+
   glGenVertexArrays(1, &mVAO);
   glBindVertexArray(mVAO);
 

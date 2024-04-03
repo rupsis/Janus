@@ -170,10 +170,24 @@ static void renderModelControls(OGLRenderData &renderData) {
 
 static void renderAnimationControls(OGLRenderData &renderData) {
   if (ImGui::CollapsingHeader("glTF Animation")) {
-    ImGui::Text("Clip No");
+    ImGui::Text("Clip  ");
     ImGui::SameLine();
-    ImGui::SliderInt("##Clip", &renderData.rdAnimClip, 0, renderData.rdAnimClipSize - 1);
-    ImGui::Text("Clip Name: %s", renderData.rdClipName.c_str());
+
+    if (ImGui::BeginCombo("##ClipCombo", renderData.rdClipNames.at(renderData.rdAnimClip).c_str()))
+    {
+      for (int i = 0; i < renderData.rdClipNames.size(); ++i) {
+        const bool isSelected = (renderData.rdAnimClip == i);
+        if (ImGui::Selectable(renderData.rdClipNames.at(i).c_str(), isSelected)) {
+          renderData.rdAnimClip = i;
+        }
+
+        if (isSelected) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+      ImGui::EndCombo();
+    }
+
     ImGui::Checkbox("Play Animation", &renderData.rdPlayAnimation);
 
     renderAnimationBlendingControls(renderData);
@@ -230,13 +244,22 @@ static void renderAnimationBlendingControls(OGLRenderData &renderData) {
 
     ImGui::Text("Dest Clip   ");
     ImGui::SameLine();
-    ImGui::SliderInt("##DestClip",
-                     &renderData.rdCrossBlendDestAnimClip,
-                     0,
-                     renderData.rdAnimClipSize - 1,
-                     "%d");
 
-    ImGui::Text("Dest Clip Name: %s", renderData.rdCrossBlendDestClipName.c_str());
+    if (ImGui::BeginCombo("##DestClipCombo",
+                          renderData.rdClipNames.at(renderData.rdCrossBlendDestAnimClip).c_str()))
+    {
+      for (int i = 0; i < renderData.rdClipNames.size(); ++i) {
+        const bool isSelected = (renderData.rdCrossBlendDestAnimClip == i);
+        if (ImGui::Selectable(renderData.rdClipNames.at(i).c_str(), isSelected)) {
+          renderData.rdCrossBlendDestAnimClip = i;
+        }
+
+        if (isSelected) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+      ImGui::EndCombo();
+    }
 
     ImGui::Text("Cross Blend ");
     ImGui::SameLine();
@@ -250,9 +273,22 @@ static void renderAnimationBlendingControls(OGLRenderData &renderData) {
     }
     ImGui::Text("Split Node  ");
     ImGui::SameLine();
-    ImGui::SliderInt(
-        "##SplitNode", &renderData.rdSkelSplitNode, 0, renderData.rdModelNodeCount - 1, "%d");
-    ImGui::Text("Split Node Name: %s", renderData.rdSkelSplitNodeName.c_str());
+
+    if (ImGui::BeginCombo("##SplitNodeCombo",
+                          renderData.rdClipNames.at(renderData.rdSkelSplitNode).c_str()))
+    {
+      for (int i = 0; i < renderData.rdClipNames.size(); ++i) {
+        const bool isSelected = (renderData.rdSkelSplitNode == i);
+        if (ImGui::Selectable(renderData.rdClipNames.at(i).c_str(), isSelected)) {
+          renderData.rdSkelSplitNode = i;
+        }
+
+        if (isSelected) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+      ImGui::EndCombo();
+    }
 
     if (!renderData.rdAdditiveBlending) {
       ImGui::EndDisabled();
