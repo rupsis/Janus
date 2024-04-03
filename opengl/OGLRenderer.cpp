@@ -395,9 +395,9 @@ void OGLRenderer::handleMovementKeys() {
   mRenderData.rdMoveUp = 0;
 
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_E) == GLFW_PRESS) {
-    mRenderData.rdMoveUp += 1;
+    mRenderData.rdMoveUp += MOVE_SPEED;
   }
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_Q) == GLFW_PRESS) {
-    mRenderData.rdMoveUp -= 1;
+    mRenderData.rdMoveUp -= MOVE_SPEED;
   }
 }

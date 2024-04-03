@@ -11,6 +11,7 @@
 
 /* UI forward declaration methods. */
 static void renderInfo(OGLRenderData &renderData);
+static void renderFPSGraph(OGLRenderData &renderData);
 static void renderTimers(OGLRenderData &renderData);
 static void renderCamera(OGLRenderData &renderData);
 static void renderModelControls(OGLRenderData &renderData);
@@ -18,6 +19,7 @@ static void renderAnimationControls(OGLRenderData &renderData);
 static void renderAnimationBlendingControls(OGLRenderData &renderData);
 
 void UserInterface::init(OGLRenderData &renderData) {
+  mFPSValues.resize(mNumFPSValues);
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGui_ImplGlfw_InitForOpenGL(renderData.rdWindow, true);
@@ -47,12 +49,50 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
     newFps = 1.0f / renderData.rdFrameTime;
   }
   //  Average out previous FPS with new FPS based on averaging Alpha
-  framesPerSecond = (averagingAlpha * framesPerSecond) + (1.0f - averagingAlpha) * newFps;
+  mFramesPerSecond = (mAveragingAlpha * mFramesPerSecond) + (1.0f - mAveragingAlpha) * newFps;
 
+  static double updateTime = 0.0;
+
+  /* avoid literal double compares */
+  if (updateTime < 0.000001) {
+    updateTime = ImGui::GetTime();
+  }
+
+  static int fpsOffset = 0;
+
+  while (updateTime < ImGui::GetTime()) {
+    mFPSValues.at(fpsOffset) = mFramesPerSecond;
+    fpsOffset = ++fpsOffset & mNumFPSValues;
+    updateTime += 1.0 / 30.0;
+  }
+
+  ImGui::BeginGroup();
   ImGui::Text("FPS:");
   ImGui::SameLine();
-  ImGui::Text("%s", std::to_string(framesPerSecond).c_str());
-  ImGui::Separator();
+  ImGui::Text("%s", std::to_string(mFramesPerSecond).c_str());
+  ImGui::EndGroup();
+
+  if (ImGui::IsItemHovered()) {
+    ImGui::BeginTooltip();
+    float averageFPS = 0.0f;
+    for (const auto value : mFPSValues) {
+      averageFPS += value;
+    }
+    averageFPS /= static_cast<float>(mNumFPSValues);
+    std::string fpsOverlay = "now:    " + std::to_string(mFramesPerSecond) +
+                             "\n30s avg: " + std::to_string(averageFPS);
+    ImGui::Text("FPS");
+    ImGui::SameLine();
+    ImGui::PlotLines("##FrameTines",
+                     mFPSValues.data(),
+                     mFPSValues.size(),
+                     fpsOffset,
+                     fpsOverlay.c_str(),
+                     0.0f,
+                     FLT_MAX,
+                     ImVec2(0, 80));
+    ImGui::EndTooltip();
+  }
 
   renderInfo(renderData);
 
