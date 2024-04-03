@@ -275,11 +275,11 @@ static void renderAnimationBlendingControls(OGLRenderData &renderData) {
     ImGui::SameLine();
 
     if (ImGui::BeginCombo("##SplitNodeCombo",
-                          renderData.rdClipNames.at(renderData.rdSkelSplitNode).c_str()))
+                          renderData.rdSkelSplitNodeNames.at(renderData.rdSkelSplitNode).c_str()))
     {
       for (int i = 0; i < renderData.rdSkelSplitNodeNames.size(); ++i) {
         const bool isSelected = (renderData.rdSkelSplitNode == i);
-        if (ImGui::Selectable(renderData.rdClipNames.at(i).c_str(), isSelected)) {
+        if (ImGui::Selectable(renderData.rdSkelSplitNodeNames.at(i).c_str(), isSelected)) {
           renderData.rdSkelSplitNode = i;
         }
 
