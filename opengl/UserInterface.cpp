@@ -224,26 +224,25 @@ static void renderAnimationBlendingControls(OGLRenderData &renderData) {
   if (ImGui::CollapsingHeader("glTF Animation Blending")) {
     ImGui::Text("Blending Type:");
     ImGui::SameLine();
-    if (ImGui::RadioButton("Fade In/Out", renderData.rdBlendingMode == blendMode::fadeinout)) {
-      renderData.rdBlendingMode = blendMode::fadeinout;
+    if (ImGui::RadioButton("Fade In/Out", renderData.rdBlendingMode == blendMode::fadeInOut)) {
+      renderData.rdBlendingMode = blendMode::fadeInOut;
     }
     ImGui::SameLine();
-    if (ImGui::RadioButton("Crossfading", renderData.rdBlendingMode == blendMode::crossfade)) {
-      renderData.rdBlendingMode = blendMode::crossfade;
+    if (ImGui::RadioButton("Crossfading", renderData.rdBlendingMode == blendMode::crossFade)) {
+      renderData.rdBlendingMode = blendMode::crossFade;
     }
     ImGui::SameLine();
     if (ImGui::RadioButton("Additive", renderData.rdBlendingMode == blendMode::additive)) {
       renderData.rdBlendingMode = blendMode::additive;
     }
 
-    if (renderData.rdBlendingMode == blendMode::fadeinout) {
+    if (renderData.rdBlendingMode == blendMode::fadeInOut) {
       ImGui::Text("Blend Factor");
       ImGui::SameLine();
-      ImGui::SliderFloat(
-          "##BlendFactor", &renderData.rdAnimBlendFactor, 0.0f, 1.0f, "%.3f", flags);
+      ImGui::SliderFloat("##BlendFactor", &renderData.rdAnimBlendFactor, 0.0f, 1.0f, "%.3f");
     }
 
-    if (renderData.rdBlendingMode == blendMode::crossfade ||
+    if (renderData.rdBlendingMode == blendMode::crossFade ||
         renderData.rdBlendingMode == blendMode::additive)
     {
       ImGui::Text("Dest Clip   ");
@@ -268,7 +267,7 @@ static void renderAnimationBlendingControls(OGLRenderData &renderData) {
       ImGui::Text("Cross Blend ");
       ImGui::SameLine();
       ImGui::SliderFloat(
-          "##CrossBlendFactor", &renderData.rdAnimCrossBlendFactor, 0.0f, 1.0f, "%.3f", flags);
+          "##CrossBlendFactor", &renderData.rdAnimCrossBlendFactor, 0.0f, 1.0f, "%.3f");
     }
 
     if (renderData.rdBlendingMode == blendMode::additive) {
