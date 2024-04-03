@@ -10,13 +10,25 @@
 #include <string>
 
 void UserInterface::init(OGLRenderData &renderData) {
-  mFPSValues.resize(mNumFPSValues);
   IMGUI_CHECKVERSION();
+
   ImGui::CreateContext();
+
   ImGui_ImplGlfw_InitForOpenGL(renderData.rdWindow, true);
+
   const char *glslVersion = "#version 460 core";
   ImGui_ImplOpenGL3_Init(glslVersion);
+
   ImGui::StyleColorsDark();
+
+  /* init plot vectors */
+  mFPSValues.resize(mNumFPSValues);
+  mFrameTimeValues.resize(mNumFrameTimeValues);
+  mModelUploadValues.resize(mNumModelUploadValues);
+  mMatrixGenerationValues.resize(mNumMatrixGenerationValues);
+  mMatrixUploadValues.resize(mNumMatrixUploadValues);
+  mUiGenValues.resize(mNumUiGenValues);
+  mUiDrawValues.resize(mNumUiDrawValues);
 }
 
 void UserInterface::cleanup() {
