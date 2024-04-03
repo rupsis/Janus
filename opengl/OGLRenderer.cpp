@@ -301,9 +301,7 @@ void OGLRenderer::cleanup() {
   mFramebuffer.cleanup();
 }
 
-void OGLRenderer::handleKeyEvents(int key, int scancode, int action, int mods) {
-  Logger::log(1, "%s: Render key handle event \n", __FUNCTION__);
-}
+void OGLRenderer::handleKeyEvents(int key, int scancode, int action, int mods) {}
 
 /* Mouse Handlers. */
 void OGLRenderer::handleMouseButtonEvents(int button, int action, int mods) {
@@ -375,22 +373,23 @@ void OGLRenderer::handleMousePositionEvents(double xPos, double yPos) {
 }
 
 void OGLRenderer::handleMovementKeys() {
+  const int MOVE_SPEED = 5;
   mRenderData.rdMoveForward = 0;
 
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_W) == GLFW_PRESS) {
-    mRenderData.rdMoveForward += 1;
+    mRenderData.rdMoveForward += MOVE_SPEED;
   }
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_S) == GLFW_PRESS) {
-    mRenderData.rdMoveForward -= 1;
+    mRenderData.rdMoveForward -= MOVE_SPEED;
   }
 
   mRenderData.rdMoveRight = 0;
 
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_D) == GLFW_PRESS) {
-    mRenderData.rdMoveRight += 1;
+    mRenderData.rdMoveRight += MOVE_SPEED;
   }
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_A) == GLFW_PRESS) {
-    mRenderData.rdMoveRight -= 1;
+    mRenderData.rdMoveRight -= MOVE_SPEED;
   }
 
   mRenderData.rdMoveUp = 0;
