@@ -80,6 +80,10 @@ glm::mat4 GltfNode::getNodeMatrix() {
   return mNodeMatrix;
 }
 
+std::string GltfNode::getNodeName() {
+  return mNodeName;
+}
+
 void GltfNode::printTree() {
   Logger::log(1, "%s: ---- tree ----\n", __FUNCTION__);
   Logger::log(1, "%s: parent : %i (%s)\n", __FUNCTION__, mNodeNum, mNodeName.c_str());

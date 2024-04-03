@@ -16,6 +16,7 @@ class GltfNode {
   void addChilds(std::vector<int> childNodes);
   std::vector<std::shared_ptr<GltfNode>> getChilds();
   int getNodeNum();
+  std::string getNodeName();
 
   void setNodeName(std::string name);
   void setScale(glm::vec3 scale);

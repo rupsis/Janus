@@ -215,27 +215,50 @@ static void renderAnimationBlendingControls(OGLRenderData &renderData) {
     if (renderData.rdCrossBlending) {
       ImGui::BeginDisabled();
     }
+
     ImGui::Text("Blend Factor");
     ImGui::SameLine();
-    ImGui::SliderFloat("##BlendFactor", &renderData.rdAnimBlendFactor, 0.0f, 1.0f);
+    ImGui::SliderFloat("##BlendFactor", &renderData.rdAnimBlendFactor, 0.0f, 1.0f, "%.3f");
+
     if (renderData.rdCrossBlending) {
       ImGui::EndDisabled();
     }
-  }
 
-  if (!renderData.rdCrossBlending) {
-    ImGui::BeginDisabled();
-  }
-  ImGui::Text("Dest Clip   ");
-  ImGui::SameLine();
-  ImGui::SliderInt(
-      "##DestClip", &renderData.rdCrossBlendDestAnimClip, 0, renderData.rdAnimClipSize - 1);
+    if (!renderData.rdCrossBlending) {
+      ImGui::BeginDisabled();
+    }
 
-  ImGui::Text("Dest Clip Name: %s", renderData.rdCrossBlendDestClipName.c_str());
-  ImGui::SameLine();
-  ImGui::SliderFloat("##CrossBlendFactor", &renderData.rdAnimCrossBlendFactor, 0.0f, 1.0f);
+    ImGui::Text("Dest Clip   ");
+    ImGui::SameLine();
+    ImGui::SliderInt("##DestClip",
+                     &renderData.rdCrossBlendDestAnimClip,
+                     0,
+                     renderData.rdAnimClipSize - 1,
+                     "%d");
 
-  if (!renderData.rdCrossBlending) {
-    ImGui::EndDisabled();
+    ImGui::Text("Dest Clip Name: %s", renderData.rdCrossBlendDestClipName.c_str());
+
+    ImGui::Text("Cross Blend ");
+    ImGui::SameLine();
+    ImGui::SliderFloat(
+        "##CrossBlendFactor", &renderData.rdAnimCrossBlendFactor, 0.0f, 1.0f, "%.3f");
+
+    ImGui::Checkbox("Additive Blending", &renderData.rdAdditiveBlending);
+
+    if (!renderData.rdAdditiveBlending) {
+      ImGui::BeginDisabled();
+    }
+    ImGui::Text("Split Node  ");
+    ImGui::SameLine();
+    ImGui::SliderInt(
+        "##SplitNode", &renderData.rdSkelSplitNode, 0, renderData.rdModelNodeCount - 1, "%d");
+    ImGui::Text("Split Node Name: %s", renderData.rdSkelSplitNodeName.c_str());
+
+    if (!renderData.rdAdditiveBlending) {
+      ImGui::EndDisabled();
+    }
+    if (!renderData.rdCrossBlending) {
+      ImGui::EndDisabled();
+    }
   }
 }

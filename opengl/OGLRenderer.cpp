@@ -102,6 +102,8 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   mSkeletonMesh = std::make_shared<OGLMesh>();
   Logger::log(1, "%s: skeleton mesh storage initialized\n", __FUNCTION__);
 
+  mRenderData.rdSkelSplitNode = mRenderData.rdModelNodeCount - 1;
+
   mFrameTimer.start();
 
   return true;
@@ -168,6 +170,27 @@ void OGLRenderer::draw() {
   // hard reset model if blending clip is changed.
   if (blendingChanged != mRenderData.rdCrossBlending) {
     blendingChanged = mRenderData.rdCrossBlending;
+    if (!mRenderData.rdCrossBlending) {
+      mRenderData.rdAdditiveBlending = false;
+    }
+    mGltfModel->resetNodeData();
+  }
+
+  static int skelSplitNode = mRenderData.rdSkelSplitNode;
+  if (skelSplitNode != mRenderData.rdSkelSplitNode) {
+    mGltfModel->setSkeletonSplitNode(mRenderData.rdSkelSplitNode);
+    skelSplitNode = mRenderData.rdSkelSplitNode;
+    mRenderData.rdSkelSplitNodeName = mGltfModel->getNodeName(mRenderData.rdSkelSplitNode);
+    mGltfModel->resetNodeData();
+  }
+
+  static bool additiveBlendingChanged = mRenderData.rdAdditiveBlending;
+  if (additiveBlendingChanged != mRenderData.rdAdditiveBlending) {
+    additiveBlendingChanged = mRenderData.rdAdditiveBlending;
+    /* reset split when additive blending is disabled */
+    if (!mRenderData.rdAdditiveBlending) {
+      mRenderData.rdSkelSplitNode = mRenderData.rdModelNodeCount - 1;
+    }
     mGltfModel->resetNodeData();
   }
 
