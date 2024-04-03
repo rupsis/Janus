@@ -102,6 +102,8 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
   mSkeletonMesh = std::make_shared<OGLMesh>();
   Logger::log(1, "%s: skeleton mesh storage initialized\n", __FUNCTION__);
 
+  mRenderData.rdSkelSplitNode = mRenderData.rdModelNodeCount - 1;
+
   mFrameTimer.start();
 
   return true;
@@ -160,12 +162,62 @@ void OGLRenderer::draw() {
 
   /* animate */
   mRenderData.rdClipName = mGltfModel->getClipName(mRenderData.rdAnimClip);
+  mRenderData.rdCrossBlendDestClipName = mGltfModel->getClipName(
+      mRenderData.rdCrossBlendDestAnimClip);
+
+  static bool blendingChanged = mRenderData.rdCrossBlending;
+
+  // hard reset model if blending clip is changed.
+  if (blendingChanged != mRenderData.rdCrossBlending) {
+    blendingChanged = mRenderData.rdCrossBlending;
+    if (!mRenderData.rdCrossBlending) {
+      mRenderData.rdAdditiveBlending = false;
+    }
+    mGltfModel->resetNodeData();
+  }
+
+  static int skelSplitNode = mRenderData.rdSkelSplitNode;
+  if (skelSplitNode != mRenderData.rdSkelSplitNode) {
+    mGltfModel->setSkeletonSplitNode(mRenderData.rdSkelSplitNode);
+    skelSplitNode = mRenderData.rdSkelSplitNode;
+    mRenderData.rdSkelSplitNodeName = mGltfModel->getNodeName(mRenderData.rdSkelSplitNode);
+    mGltfModel->resetNodeData();
+  }
+
+  static bool additiveBlendingChanged = mRenderData.rdAdditiveBlending;
+  if (additiveBlendingChanged != mRenderData.rdAdditiveBlending) {
+    additiveBlendingChanged = mRenderData.rdAdditiveBlending;
+    /* reset split when additive blending is disabled */
+    if (!mRenderData.rdAdditiveBlending) {
+      mRenderData.rdSkelSplitNode = mRenderData.rdModelNodeCount - 1;
+    }
+    mGltfModel->resetNodeData();
+  }
+
   if (mRenderData.rdPlayAnimation) {
-    mGltfModel->playAnimation(mRenderData.rdAnimClip, mRenderData.rdAnimSpeed);
+    if (mRenderData.rdCrossBlending) {
+      mGltfModel->playAnimation(mRenderData.rdAnimClip,
+                                mRenderData.rdCrossBlendDestAnimClip,
+                                mRenderData.rdAnimSpeed,
+                                mRenderData.rdAnimCrossBlendFactor);
+    }
+    else {
+      mGltfModel->playAnimation(
+          mRenderData.rdAnimClip, mRenderData.rdAnimSpeed, mRenderData.rdAnimBlendFactor);
+    }
   }
   else {
     mRenderData.rdAnimEndTime = mGltfModel->getAnimationEndTime(mRenderData.rdAnimClip);
-    mGltfModel->setAnimationFrame(mRenderData.rdAnimClip, mRenderData.rdAnimTimePosition);
+    if (mRenderData.rdCrossBlending) {
+      mGltfModel->crossBlendAnimationFrame(mRenderData.rdAnimClip,
+                                           mRenderData.rdCrossBlendDestAnimClip,
+                                           mRenderData.rdAnimTimePosition,
+                                           mRenderData.rdAnimCrossBlendFactor);
+    }
+    else {
+      mGltfModel->blendAnimationFrame(
+          mRenderData.rdAnimClip, mRenderData.rdAnimTimePosition, mRenderData.rdAnimBlendFactor);
+    }
   }
 
   /* get gltTF skeleton */

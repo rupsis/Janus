@@ -23,17 +23,26 @@ class GltfModel {
   void uploadVertexBuffers();
   void uploadIndexBuffer();
   std::shared_ptr<OGLMesh> getSkeleton();
+  void setSkeletonSplitNode(int nodeNum);
   int getJointMatrixSize();
   std::vector<glm::mat4> getJointMatrices();
   int getJointDualQuatsSize();
   std::vector<glm::mat2x4> getJointDualQuats();
+  std::string getNodeName(int nodeNum);
 
   /* Animations */
-  void playAnimation(int animNum, float speedDiver);
-  void setAnimationFrame(int animNumber, float time);
+  void playAnimation(int animNum, float speedDiver, float blendFactor);
+  void playAnimation(int sourceAnimNum, int destAnimNum, float speedDivider, float blendFactor);
+  void blendAnimationFrame(int animNumber, float time, float blendFactor);
+  void crossBlendAnimationFrame(int sourceAnimNumber,
+                                int destAnimNumber,
+                                float time,
+                                float blendFactor);
   float getAnimationEndTime(int animNum);
   std::string getClipName(int animNum);
   void getAnimations();
+
+  void resetNodeData();
 
  private:
   void createVertexBuffers();
@@ -47,8 +56,10 @@ class GltfModel {
   void getInvBindMatrices();
   void getNodes(std::shared_ptr<GltfNode> treeNode);
   void getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
+  void resetNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
   void updateNodeMatrices(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
   void updateJointMatricesAndQuats(std::shared_ptr<GltfNode> treeNode);
+  void updateAdditiveMask(std::shared_ptr<GltfNode> treeNode, int splitNodeNum);
 
   // Joint data is hardcoded to the test model.
   // Will need to check componentType field to convert
@@ -70,6 +81,9 @@ class GltfModel {
   std::shared_ptr<OGLMesh> mSkeletonMesh = nullptr;
 
   std::vector<std::shared_ptr<GltfNode>> mNodeList;
+
+  std::vector<bool> mAdditiveAnimationMask{};
+  std::vector<bool> mInvertedAdditiveAnimationMask{};
 
   // Animation
   std::vector<std::shared_ptr<GltfAnimationClip>> mAnimClips{};

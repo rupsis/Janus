@@ -15,6 +15,7 @@ static void renderTimers(OGLRenderData &renderData);
 static void renderCamera(OGLRenderData &renderData);
 static void renderModelControls(OGLRenderData &renderData);
 static void renderAnimationControls(OGLRenderData &renderData);
+static void renderAnimationBlendingControls(OGLRenderData &renderData);
 
 void UserInterface::init(OGLRenderData &renderData) {
   IMGUI_CHECKVERSION();
@@ -175,6 +176,8 @@ static void renderAnimationControls(OGLRenderData &renderData) {
     ImGui::Text("Clip Name: %s", renderData.rdClipName.c_str());
     ImGui::Checkbox("Play Animation", &renderData.rdPlayAnimation);
 
+    renderAnimationBlendingControls(renderData);
+
     if (!renderData.rdPlayAnimation) {
       ImGui::BeginDisabled();
     }
@@ -193,6 +196,68 @@ static void renderAnimationControls(OGLRenderData &renderData) {
     ImGui::SliderFloat(
         "##ClipPos", &renderData.rdAnimTimePosition, 0.0f, renderData.rdAnimEndTime);
     if (renderData.rdPlayAnimation) {
+      ImGui::EndDisabled();
+    }
+  }
+}
+
+static void renderAnimationBlendingControls(OGLRenderData &renderData) {
+  if (ImGui::CollapsingHeader("glTF Animation Blending")) {
+    ImGui::Checkbox("Blending Type:", &renderData.rdCrossBlending);
+    ImGui::SameLine();
+    if (renderData.rdCrossBlending) {
+      ImGui::Text("Cross");
+    }
+    else {
+      ImGui::Text("Single");
+    }
+
+    if (renderData.rdCrossBlending) {
+      ImGui::BeginDisabled();
+    }
+
+    ImGui::Text("Blend Factor");
+    ImGui::SameLine();
+    ImGui::SliderFloat("##BlendFactor", &renderData.rdAnimBlendFactor, 0.0f, 1.0f, "%.3f");
+
+    if (renderData.rdCrossBlending) {
+      ImGui::EndDisabled();
+    }
+
+    if (!renderData.rdCrossBlending) {
+      ImGui::BeginDisabled();
+    }
+
+    ImGui::Text("Dest Clip   ");
+    ImGui::SameLine();
+    ImGui::SliderInt("##DestClip",
+                     &renderData.rdCrossBlendDestAnimClip,
+                     0,
+                     renderData.rdAnimClipSize - 1,
+                     "%d");
+
+    ImGui::Text("Dest Clip Name: %s", renderData.rdCrossBlendDestClipName.c_str());
+
+    ImGui::Text("Cross Blend ");
+    ImGui::SameLine();
+    ImGui::SliderFloat(
+        "##CrossBlendFactor", &renderData.rdAnimCrossBlendFactor, 0.0f, 1.0f, "%.3f");
+
+    ImGui::Checkbox("Additive Blending", &renderData.rdAdditiveBlending);
+
+    if (!renderData.rdAdditiveBlending) {
+      ImGui::BeginDisabled();
+    }
+    ImGui::Text("Split Node  ");
+    ImGui::SameLine();
+    ImGui::SliderInt(
+        "##SplitNode", &renderData.rdSkelSplitNode, 0, renderData.rdModelNodeCount - 1, "%d");
+    ImGui::Text("Split Node Name: %s", renderData.rdSkelSplitNodeName.c_str());
+
+    if (!renderData.rdAdditiveBlending) {
+      ImGui::EndDisabled();
+    }
+    if (!renderData.rdCrossBlending) {
       ImGui::EndDisabled();
     }
   }
