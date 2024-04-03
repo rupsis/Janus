@@ -5,7 +5,7 @@
 int main(int arcc, char *argc[]) {
   std::unique_ptr<Window> w = std::make_unique<Window>();
 
-  if (!w->init(640, 480, "Test Window")) {
+  if (!w->init(640, 480, "Janus")) {
     Logger::log(1, "%s error: Window init error\n", __FUNCTION__);
     return -1;
   }
