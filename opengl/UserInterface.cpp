@@ -9,15 +9,6 @@
 
 #include <string>
 
-/* UI forward declaration methods. */
-static void renderInfo(OGLRenderData &renderData);
-static void renderFPSGraph(OGLRenderData &renderData);
-static void renderTimers(OGLRenderData &renderData);
-static void renderCamera(OGLRenderData &renderData);
-static void renderModelControls(OGLRenderData &renderData);
-static void renderAnimationControls(OGLRenderData &renderData);
-static void renderAnimationBlendingControls(OGLRenderData &renderData);
-
 void UserInterface::init(OGLRenderData &renderData) {
   mFPSValues.resize(mNumFPSValues);
   IMGUI_CHECKVERSION();
@@ -51,6 +42,48 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   //  Average out previous FPS with new FPS based on averaging Alpha
   mFramesPerSecond = (mAveragingAlpha * mFramesPerSecond) + (1.0f - mAveragingAlpha) * newFps;
 
+  renderTimers(renderData);
+
+  renderInfo(renderData);
+
+  renderCamera(renderData);
+
+  renderModelControls(renderData);
+
+  renderAnimationControls(renderData);
+
+  ImGui::End();
+}
+
+void UserInterface::render() {
+  ImGui::Render();
+  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+/* UI Sections. */
+void UserInterface::renderInfo(OGLRenderData &renderData) {
+  if (ImGui::CollapsingHeader("Info")) {
+    ImGui::Text("Triangles:");
+    ImGui::SameLine();
+    ImGui::Text(
+        "%s", std::to_string(renderData.rdTriangleCount + renderData.rdGltfTriangleCount).c_str());
+
+    std::string windowDims = std::to_string(renderData.rdHeight) + "x" +
+                             std::to_string(renderData.rdWidth);
+    ImGui::Text("Window Dimensions:");
+    ImGui::SameLine();
+    ImGui::Text("%s", windowDims.c_str());
+
+    std::string imgWindowPos = std::to_string(static_cast<int>(ImGui::GetWindowPos().x)) + "/" +
+                               std::to_string(static_cast<int>(ImGui::GetWindowPos().y));
+    ImGui::Text("ImGui Window Position:");
+    ImGui::SameLine();
+    ImGui::Text("%s", imgWindowPos.c_str());
+  }
+}
+
+void UserInterface::renderTimers(OGLRenderData &renderData) {
+
   static double updateTime = 0.0;
 
   /* avoid literal double compares */
@@ -59,10 +92,35 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
   }
 
   static int fpsOffset = 0;
+  static int frameTimeOffset = 0;
+  static int modelUploadOffset = 0;
+  static int matrixGenOffset = 0;
+  static int matrixUploadOffset = 0;
+  static int uiGenOffset = 0;
+  static int uiDrawOffset = 0;
 
   while (updateTime < ImGui::GetTime()) {
     mFPSValues.at(fpsOffset) = mFramesPerSecond;
-    fpsOffset = ++fpsOffset & mNumFPSValues;
+    fpsOffset = ++fpsOffset % mNumFPSValues;
+
+    mFrameTimeValues.at(frameTimeOffset) = renderData.rdFrameTime;
+    frameTimeOffset = ++frameTimeOffset % mNumFrameTimeValues;
+
+    mModelUploadValues.at(modelUploadOffset) = renderData.rdUploadToVBOTime;
+    modelUploadOffset = ++modelUploadOffset % mNumModelUploadValues;
+
+    mMatrixGenerationValues.at(matrixGenOffset) = renderData.rdMatrixGenerateTime;
+    matrixGenOffset = ++matrixGenOffset % mNumMatrixGenerationValues;
+
+    mMatrixUploadValues.at(matrixUploadOffset) = renderData.rdUploadToUBOTime;
+    matrixUploadOffset = ++matrixUploadOffset % mNumMatrixUploadValues;
+
+    mUiGenValues.at(uiGenOffset) = renderData.rdUIGenerateTime;
+    uiGenOffset = ++uiGenOffset % mNumUiGenValues;
+
+    mUiDrawValues.at(uiDrawOffset) = renderData.rdUIDrawTime;
+    uiDrawOffset = ++uiDrawOffset % mNumUiDrawValues;
+
     updateTime += 1.0 / 30.0;
   }
 
@@ -94,87 +152,194 @@ void UserInterface::createFrame(OGLRenderData &renderData) {
     ImGui::EndTooltip();
   }
 
-  renderInfo(renderData);
-
-  renderTimers(renderData);
-
-  renderCamera(renderData);
-
-  renderModelControls(renderData);
-
-  renderAnimationControls(renderData);
-
-  ImGui::End();
-}
-
-void UserInterface::render() {
-  ImGui::Render();
-  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
-/* UI Sections. */
-static void renderInfo(OGLRenderData &renderData) {
-  if (ImGui::CollapsingHeader("Info")) {
-    ImGui::Text("Triangles:");
-    ImGui::SameLine();
-    ImGui::Text(
-        "%s", std::to_string(renderData.rdTriangleCount + renderData.rdGltfTriangleCount).c_str());
-
-    std::string windowDims = std::to_string(renderData.rdHeight) + "x" +
-                             std::to_string(renderData.rdWidth);
-    ImGui::Text("Window Dimensions:");
-    ImGui::SameLine();
-    ImGui::Text("%s", windowDims.c_str());
-
-    std::string imgWindowPos = std::to_string(static_cast<int>(ImGui::GetWindowPos().x)) + "/" +
-                               std::to_string(static_cast<int>(ImGui::GetWindowPos().y));
-    ImGui::Text("ImGui Window Position:");
-    ImGui::SameLine();
-    ImGui::Text("%s", imgWindowPos.c_str());
-  }
-}
-
-static void renderTimers(OGLRenderData &renderData) {
   if (ImGui::CollapsingHeader("Timers")) {
+    ImGui::BeginGroup();
     ImGui::Text("Frame Time:");
     ImGui::SameLine();
     ImGui::Text("%s", std::to_string(renderData.rdFrameTime).c_str());
     ImGui::SameLine();
     ImGui::Text("ms");
+    ImGui::EndGroup();
 
+    if (ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      float averageFrameTime = 0.0f;
+      for (const auto value : mFrameTimeValues) {
+        averageFrameTime += value;
+      }
+      averageFrameTime /= static_cast<float>(mNumMatrixGenerationValues);
+      std::string frameTimeOverlay = "now:     " + std::to_string(renderData.rdFrameTime) +
+                                     " ms\n30s avg: " + std::to_string(averageFrameTime) + " ms";
+      ImGui::Text("Frame Time       ");
+      ImGui::SameLine();
+      ImGui::PlotLines("##FrameTime",
+                       mFrameTimeValues.data(),
+                       mFrameTimeValues.size(),
+                       frameTimeOffset,
+                       frameTimeOverlay.c_str(),
+                       0.0f,
+                       FLT_MAX,
+                       ImVec2(0, 80));
+      ImGui::EndTooltip();
+    }
+
+    ImGui::BeginGroup();
     ImGui::Text("Model Upload Time:");
     ImGui::SameLine();
     ImGui::Text("%s", std::to_string(renderData.rdUploadToVBOTime).c_str());
     ImGui::SameLine();
     ImGui::Text("ms");
+    ImGui::EndGroup();
 
+    if (ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      float averageModelUpload = 0.0f;
+      for (const auto value : mModelUploadValues) {
+        averageModelUpload += value;
+      }
+      averageModelUpload /= static_cast<float>(mNumModelUploadValues);
+      std::string modelUploadOverlay = "now:     " + std::to_string(renderData.rdUploadToVBOTime) +
+                                       " ms\n30s avg: " + std::to_string(averageModelUpload) +
+                                       " ms";
+      ImGui::Text("VBO Upload");
+      ImGui::SameLine();
+      ImGui::PlotLines("##ModelUploadTimes",
+                       mModelUploadValues.data(),
+                       mModelUploadValues.size(),
+                       modelUploadOffset,
+                       modelUploadOverlay.c_str(),
+                       0.0f,
+                       FLT_MAX,
+                       ImVec2(0, 80));
+      ImGui::EndTooltip();
+    }
+
+    ImGui::BeginGroup();
     ImGui::Text("Matrix Generation Time:");
     ImGui::SameLine();
     ImGui::Text("%s", std::to_string(renderData.rdMatrixGenerateTime).c_str());
     ImGui::SameLine();
     ImGui::Text("ms");
+    ImGui::EndGroup();
 
+    if (ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      float averageMatGen = 0.0f;
+      for (const auto value : mMatrixGenerationValues) {
+        averageMatGen += value;
+      }
+      averageMatGen /= static_cast<float>(mNumMatrixGenerationValues);
+      std::string matrixGenOverlay = "now:     " +
+                                     std::to_string(renderData.rdMatrixGenerateTime) +
+                                     " ms\n30s avg: " + std::to_string(averageMatGen) + " ms";
+      ImGui::Text("Matrix Generation");
+      ImGui::SameLine();
+      ImGui::PlotLines("##MatrixGenTimes",
+                       mMatrixGenerationValues.data(),
+                       mMatrixGenerationValues.size(),
+                       matrixGenOffset,
+                       matrixGenOverlay.c_str(),
+                       0.0f,
+                       FLT_MAX,
+                       ImVec2(0, 80));
+      ImGui::EndTooltip();
+    }
+
+    ImGui::BeginGroup();
     ImGui::Text("Matrix Upload Time:");
     ImGui::SameLine();
     ImGui::Text("%s", std::to_string(renderData.rdUploadToUBOTime).c_str());
     ImGui::SameLine();
     ImGui::Text("ms");
+    ImGui::EndGroup();
 
+    if (ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      float averageMatrixUpload = 0.0f;
+      for (const auto value : mMatrixUploadValues) {
+        averageMatrixUpload += value;
+      }
+      averageMatrixUpload /= static_cast<float>(mNumMatrixUploadValues);
+      std::string matrixUploadOverlay = "now:     " +
+                                        std::to_string(renderData.rdUploadToVBOTime) +
+                                        " ms\n30s avg: " + std::to_string(averageMatrixUpload) +
+                                        " ms";
+      ImGui::Text("UBO Upload");
+      ImGui::SameLine();
+      ImGui::PlotLines("##MatrixUploadTimes",
+                       mMatrixUploadValues.data(),
+                       mMatrixUploadValues.size(),
+                       matrixUploadOffset,
+                       matrixUploadOverlay.c_str(),
+                       0.0f,
+                       FLT_MAX,
+                       ImVec2(0, 80));
+      ImGui::EndTooltip();
+    }
+
+    ImGui::BeginGroup();
     ImGui::Text("UI Generation Time:");
     ImGui::SameLine();
     ImGui::Text("%s", std::to_string(renderData.rdUIGenerateTime).c_str());
     ImGui::SameLine();
     ImGui::Text("ms");
+    ImGui::EndGroup();
 
+    if (ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      float averageUiGen = 0.0f;
+      for (const auto value : mUiGenValues) {
+        averageUiGen += value;
+      }
+      averageUiGen /= static_cast<float>(mNumUiGenValues);
+      std::string uiGenOverlay = "now:     " + std::to_string(renderData.rdUIGenerateTime) +
+                                 " ms\n30s avg: " + std::to_string(averageUiGen) + " ms";
+      ImGui::Text("UI Generation");
+      ImGui::SameLine();
+      ImGui::PlotLines("##ModelUpload",
+                       mUiGenValues.data(),
+                       mUiGenValues.size(),
+                       uiGenOffset,
+                       uiGenOverlay.c_str(),
+                       0.0f,
+                       FLT_MAX,
+                       ImVec2(0, 80));
+      ImGui::EndTooltip();
+    }
+
+    ImGui::BeginGroup();
     ImGui::Text("UI Draw Time:");
     ImGui::SameLine();
     ImGui::Text("%s", std::to_string(renderData.rdUIDrawTime).c_str());
     ImGui::SameLine();
     ImGui::Text("ms");
+    ImGui::EndGroup();
+
+    if (ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      float averageUiDraw = 0.0f;
+      for (const auto value : mUiDrawValues) {
+        averageUiDraw += value;
+      }
+      averageUiDraw /= static_cast<float>(mNumUiDrawValues);
+      std::string uiDrawOverlay = "now:     " + std::to_string(renderData.rdUIDrawTime) +
+                                  " ms\n30s avg: " + std::to_string(averageUiDraw) + " ms";
+      ImGui::Text("UI Draw");
+      ImGui::SameLine();
+      ImGui::PlotLines("##UIDrawTimes",
+                       mUiDrawValues.data(),
+                       mUiDrawValues.size(),
+                       uiGenOffset,
+                       uiDrawOverlay.c_str(),
+                       0.0f,
+                       FLT_MAX,
+                       ImVec2(0, 80));
+      ImGui::EndTooltip();
+    }
   }
 }
 
-static void renderCamera(OGLRenderData &renderData) {
+void UserInterface::renderCamera(OGLRenderData &renderData) {
   if (ImGui::CollapsingHeader("Camera")) {
     ImGui::Text("Camera Position:");
     ImGui::SameLine();
@@ -194,7 +359,7 @@ static void renderCamera(OGLRenderData &renderData) {
   }
 }
 
-static void renderModelControls(OGLRenderData &renderData) {
+void UserInterface::renderModelControls(OGLRenderData &renderData) {
   ImGui::Checkbox("Draw Model", &renderData.rdDrawGltfModel);
   ImGui::Checkbox("Draw Skeleton", &renderData.rdDrawSkeleton);
 
@@ -213,7 +378,7 @@ static void renderModelControls(OGLRenderData &renderData) {
   }
 }
 
-static void renderAnimationControls(OGLRenderData &renderData) {
+void UserInterface::renderAnimationControls(OGLRenderData &renderData) {
   if (ImGui::CollapsingHeader("glTF Animation")) {
     ImGui::Text("Clip  ");
     ImGui::SameLine();
@@ -260,7 +425,7 @@ static void renderAnimationControls(OGLRenderData &renderData) {
   }
 }
 
-static void renderAnimationBlendingControls(OGLRenderData &renderData) {
+void UserInterface::renderAnimationBlendingControls(OGLRenderData &renderData) {
   if (ImGui::CollapsingHeader("glTF Animation Blending")) {
     ImGui::Text("Blending Type:");
     ImGui::SameLine();
