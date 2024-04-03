@@ -161,17 +161,11 @@ void OGLRenderer::draw() {
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
 
   /* animate */
-  mRenderData.rdClipName = mGltfModel->getClipName(mRenderData.rdAnimClip);
-  mRenderData.rdCrossBlendDestClipName = mGltfModel->getClipName(
-      mRenderData.rdCrossBlendDestAnimClip);
-
-  static bool blendingChanged = mRenderData.rdCrossBlending;
-
-  // hard reset model if blending clip is changed.
-  if (blendingChanged != mRenderData.rdCrossBlending) {
-    blendingChanged = mRenderData.rdCrossBlending;
-    if (!mRenderData.rdCrossBlending) {
-      mRenderData.rdAdditiveBlending = false;
+  static blendMode lastBlendMode = mRenderData.rdBlendingMode;
+  if (lastBlendMode != mRenderData.rdBlendingMode) {
+    lastBlendMode = mRenderData.rdBlendingMode;
+    if (mRenderData.rdBlendingMode != blendMode::additive) {
+      mRenderData.rdSkelSplitNode = mRenderData.rdModelNodeCount - 1;
     }
     mGltfModel->resetNodeData();
   }
@@ -180,35 +174,31 @@ void OGLRenderer::draw() {
   if (skelSplitNode != mRenderData.rdSkelSplitNode) {
     mGltfModel->setSkeletonSplitNode(mRenderData.rdSkelSplitNode);
     skelSplitNode = mRenderData.rdSkelSplitNode;
-    mRenderData.rdSkelSplitNodeName = mGltfModel->getNodeName(mRenderData.rdSkelSplitNode);
-    mGltfModel->resetNodeData();
-  }
-
-  static bool additiveBlendingChanged = mRenderData.rdAdditiveBlending;
-  if (additiveBlendingChanged != mRenderData.rdAdditiveBlending) {
-    additiveBlendingChanged = mRenderData.rdAdditiveBlending;
-    /* reset split when additive blending is disabled */
-    if (!mRenderData.rdAdditiveBlending) {
-      mRenderData.rdSkelSplitNode = mRenderData.rdModelNodeCount - 1;
-    }
     mGltfModel->resetNodeData();
   }
 
   if (mRenderData.rdPlayAnimation) {
-    if (mRenderData.rdCrossBlending) {
+    if (mRenderData.rdBlendingMode == blendMode::crossFade ||
+        mRenderData.rdBlendingMode == blendMode::additive)
+    {
       mGltfModel->playAnimation(mRenderData.rdAnimClip,
                                 mRenderData.rdCrossBlendDestAnimClip,
                                 mRenderData.rdAnimSpeed,
-                                mRenderData.rdAnimCrossBlendFactor);
+                                mRenderData.rdAnimCrossBlendFactor,
+                                mRenderData.rdAnimationPlayDirection);
     }
     else {
-      mGltfModel->playAnimation(
-          mRenderData.rdAnimClip, mRenderData.rdAnimSpeed, mRenderData.rdAnimBlendFactor);
+      mGltfModel->playAnimation(mRenderData.rdAnimClip,
+                                mRenderData.rdAnimSpeed,
+                                mRenderData.rdAnimBlendFactor,
+                                mRenderData.rdAnimationPlayDirection);
     }
   }
   else {
     mRenderData.rdAnimEndTime = mGltfModel->getAnimationEndTime(mRenderData.rdAnimClip);
-    if (mRenderData.rdCrossBlending) {
+    if (mRenderData.rdBlendingMode == blendMode::crossFade ||
+        mRenderData.rdBlendingMode == blendMode::additive)
+    {
       mGltfModel->crossBlendAnimationFrame(mRenderData.rdAnimClip,
                                            mRenderData.rdCrossBlendDestAnimClip,
                                            mRenderData.rdAnimTimePosition,
@@ -232,7 +222,7 @@ void OGLRenderer::draw() {
   matrixData.push_back(mProjectionMatrix);
   mUniformBuffer.uploadUboData(matrixData, 0);
 
-  if (mRenderData.rdGPUDualQuatVertexSkinning) {
+  if (mRenderData.rdGPUDualQuatVertexSkinning == skinningMode::dualQuat) {
     mGltfDualQuatSSBuffer.uploadSsboData(mGltfModel->getJointDualQuats(), 2);
   }
   else {
@@ -263,7 +253,7 @@ void OGLRenderer::draw() {
 
   /* draw the glTF model */
   if (mRenderData.rdDrawGltfModel) {
-    if (mRenderData.rdGPUDualQuatVertexSkinning) {
+    if (mRenderData.rdGPUDualQuatVertexSkinning == skinningMode::dualQuat) {
       mGltfGPUDualQuatShader.use();
     }
     else {
@@ -311,9 +301,7 @@ void OGLRenderer::cleanup() {
   mFramebuffer.cleanup();
 }
 
-void OGLRenderer::handleKeyEvents(int key, int scancode, int action, int mods) {
-  Logger::log(1, "%s: Render key handle event \n", __FUNCTION__);
-}
+void OGLRenderer::handleKeyEvents(int key, int scancode, int action, int mods) {}
 
 /* Mouse Handlers. */
 void OGLRenderer::handleMouseButtonEvents(int button, int action, int mods) {
@@ -385,30 +373,31 @@ void OGLRenderer::handleMousePositionEvents(double xPos, double yPos) {
 }
 
 void OGLRenderer::handleMovementKeys() {
+  const int MOVE_SPEED = 5;
   mRenderData.rdMoveForward = 0;
 
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_W) == GLFW_PRESS) {
-    mRenderData.rdMoveForward += 1;
+    mRenderData.rdMoveForward += MOVE_SPEED;
   }
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_S) == GLFW_PRESS) {
-    mRenderData.rdMoveForward -= 1;
+    mRenderData.rdMoveForward -= MOVE_SPEED;
   }
 
   mRenderData.rdMoveRight = 0;
 
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_D) == GLFW_PRESS) {
-    mRenderData.rdMoveRight += 1;
+    mRenderData.rdMoveRight += MOVE_SPEED;
   }
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_A) == GLFW_PRESS) {
-    mRenderData.rdMoveRight -= 1;
+    mRenderData.rdMoveRight -= MOVE_SPEED;
   }
 
   mRenderData.rdMoveUp = 0;
 
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_E) == GLFW_PRESS) {
-    mRenderData.rdMoveUp += 1;
+    mRenderData.rdMoveUp += MOVE_SPEED;
   }
   if (glfwGetKey(mRenderData.rdWindow, GLFW_KEY_Q) == GLFW_PRESS) {
-    mRenderData.rdMoveUp -= 1;
+    mRenderData.rdMoveUp -= MOVE_SPEED;
   }
 }

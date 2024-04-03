@@ -21,6 +21,13 @@ struct OGLMesh {
   std::vector<OGLVertex> vertices;
 };
 
+/* UI Ratio button enums*/
+enum class skinningMode { linear = 0, dualQuat };
+
+enum class blendMode { fadeInOut = 0, crossFade, additive };
+
+enum class replayDirection { forward = 0, backward };
+
 struct OGLRenderData {
   GLFWwindow *rdWindow = nullptr;
 
@@ -52,25 +59,25 @@ struct OGLRenderData {
 
   bool rdDrawGltfModel = true;
   bool rdDrawSkeleton = true;
-  bool rdGPUDualQuatVertexSkinning = false;
 
   /* Animation */
   bool rdPlayAnimation = true;
   float rdAnimBlendFactor = 1.0f;
-  std::string rdClipName = "None";
+  std::vector<std::string> rdClipNames{};
   int rdAnimClip = 0;
   int rdAnimClipSize = 0;
   float rdAnimSpeed = 1.0f;
   float rdAnimTimePosition = 0.0f;
   float rdAnimEndTime = 0.0f;
 
-  bool rdCrossBlending = false;
   int rdCrossBlendDestAnimClip = 0;
-  std::string rdCrossBlendDestClipName = "None";
   float rdAnimCrossBlendFactor = 0.0f;
 
   int rdModelNodeCount = 0;
-  bool rdAdditiveBlending = false;
   int rdSkelSplitNode = 0;
-  std::string rdSkelSplitNodeName = "None";
+  std::vector<std::string> rdSkelSplitNodeNames{};
+
+  skinningMode rdGPUDualQuatVertexSkinning = skinningMode::linear;
+  blendMode rdBlendingMode = blendMode::fadeInOut;
+  replayDirection rdAnimationPlayDirection = replayDirection::forward;
 };
