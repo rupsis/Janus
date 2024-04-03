@@ -202,9 +202,8 @@ void OGLRenderer::draw() {
                                 mRenderData.rdAnimCrossBlendFactor);
     }
     else {
-      mRenderData.rdAnimEndTime = mGltfModel->getAnimationEndTime(mRenderData.rdAnimClip);
-      mGltfModel->blendAnimationFrame(
-          mRenderData.rdAnimClip, mRenderData.rdAnimTimePosition, mRenderData.rdAnimBlendFactor);
+      mGltfModel->playAnimation(
+          mRenderData.rdAnimClip, mRenderData.rdAnimSpeed, mRenderData.rdAnimBlendFactor);
     }
   }
   else {
