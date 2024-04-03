@@ -224,19 +224,26 @@ static void renderAnimationBlendingControls(OGLRenderData &renderData) {
   if (ImGui::CollapsingHeader("glTF Animation Blending")) {
     ImGui::Text("Blending Type:");
     ImGui::SameLine();
-    if (ImGui::RadioButton("Fade In/Out", renderData.rdBlendingMode == blendMode::crossFade)) {
-      renderData.rdBlendingMode = blendMode::crossFade;
+    if (ImGui::RadioButton("Fade In/Out", renderData.rdBlendingMode == blendMode::fadeinout)) {
+      renderData.rdBlendingMode = blendMode::fadeinout;
     }
     ImGui::SameLine();
-    if (ImGui::RadioButton("Crossfading", renderData.rdBlendingMode == blendMode::crossFade)) {
-      renderData.rdBlendingMode = blendMode::crossFade;
+    if (ImGui::RadioButton("Crossfading", renderData.rdBlendingMode == blendMode::crossfade)) {
+      renderData.rdBlendingMode = blendMode::crossfade;
     }
     ImGui::SameLine();
     if (ImGui::RadioButton("Additive", renderData.rdBlendingMode == blendMode::additive)) {
       renderData.rdBlendingMode = blendMode::additive;
     }
 
-    if (renderData.rdBlendingMode == blendMode::crossFade ||
+    if (renderData.rdBlendingMode == blendMode::fadeinout) {
+      ImGui::Text("Blend Factor");
+      ImGui::SameLine();
+      ImGui::SliderFloat(
+          "##BlendFactor", &renderData.rdAnimBlendFactor, 0.0f, 1.0f, "%.3f", flags);
+    }
+
+    if (renderData.rdBlendingMode == blendMode::crossfade ||
         renderData.rdBlendingMode == blendMode::additive)
     {
       ImGui::Text("Dest Clip   ");
@@ -261,7 +268,7 @@ static void renderAnimationBlendingControls(OGLRenderData &renderData) {
       ImGui::Text("Cross Blend ");
       ImGui::SameLine();
       ImGui::SliderFloat(
-          "##CrossBlendFactor", &renderData.rdAnimCrossBlendFactor, 0.0f, 1.0f, "%.3f");
+          "##CrossBlendFactor", &renderData.rdAnimCrossBlendFactor, 0.0f, 1.0f, "%.3f", flags);
     }
 
     if (renderData.rdBlendingMode == blendMode::additive) {
@@ -285,49 +292,6 @@ static void renderAnimationBlendingControls(OGLRenderData &renderData) {
         }
         ImGui::EndCombo();
       }
-    }
-
-    ImGui::Text("Dest Clip   ");
-    ImGui::SameLine();
-
-    if (ImGui::BeginCombo("##DestClipCombo",
-                          renderData.rdClipNames.at(renderData.rdCrossBlendDestAnimClip).c_str()))
-    {
-      for (int i = 0; i < renderData.rdClipNames.size(); ++i) {
-        const bool isSelected = (renderData.rdCrossBlendDestAnimClip == i);
-        if (ImGui::Selectable(renderData.rdClipNames.at(i).c_str(), isSelected)) {
-          renderData.rdCrossBlendDestAnimClip = i;
-        }
-
-        if (isSelected) {
-          ImGui::SetItemDefaultFocus();
-        }
-      }
-      ImGui::EndCombo();
-    }
-
-    ImGui::Text("Cross Blend ");
-    ImGui::SameLine();
-    ImGui::SliderFloat(
-        "##CrossBlendFactor", &renderData.rdAnimCrossBlendFactor, 0.0f, 1.0f, "%.3f");
-
-    ImGui::Text("Split Node  ");
-    ImGui::SameLine();
-
-    if (ImGui::BeginCombo("##SplitNodeCombo",
-                          renderData.rdSkelSplitNodeNames.at(renderData.rdSkelSplitNode).c_str()))
-    {
-      for (int i = 0; i < renderData.rdSkelSplitNodeNames.size(); ++i) {
-        const bool isSelected = (renderData.rdSkelSplitNode == i);
-        if (ImGui::Selectable(renderData.rdSkelSplitNodeNames.at(i).c_str(), isSelected)) {
-          renderData.rdSkelSplitNode = i;
-        }
-
-        if (isSelected) {
-          ImGui::SetItemDefaultFocus();
-        }
-      }
-      ImGui::EndCombo();
     }
   }
 }
