@@ -158,13 +158,18 @@ static void renderModelControls(OGLRenderData &renderData) {
   ImGui::Checkbox("Draw Model", &renderData.rdDrawGltfModel);
   ImGui::Checkbox("Draw Skeleton", &renderData.rdDrawSkeleton);
 
-  ImGui::Checkbox("GPU Vertex Skinning Method:", &renderData.rdGPUDualQuatVertexSkinning);
+  ImGui::Text("Vertex Skinning:");
   ImGui::SameLine();
-  if (renderData.rdGPUDualQuatVertexSkinning) {
-    ImGui::Text("Dual Quaternion");
+  if (ImGui::RadioButton("Linear", renderData.rdGPUDualQuatVertexSkinning == skinningMode::linear))
+  {
+    renderData.rdGPUDualQuatVertexSkinning = skinningMode::linear;
   }
-  else {
-    ImGui::Text("Linear");
+
+  ImGui::SameLine();
+  if (ImGui::RadioButton("Dual Quaternion",
+                         renderData.rdGPUDualQuatVertexSkinning == skinningMode::dualQuat))
+  {
+    renderData.rdGPUDualQuatVertexSkinning = skinningMode::dualQuat;
   }
 }
 
@@ -217,29 +222,69 @@ static void renderAnimationControls(OGLRenderData &renderData) {
 
 static void renderAnimationBlendingControls(OGLRenderData &renderData) {
   if (ImGui::CollapsingHeader("glTF Animation Blending")) {
-    ImGui::Checkbox("Blending Type:", &renderData.rdCrossBlending);
+    ImGui::Text("Blending Type:");
     ImGui::SameLine();
-    if (renderData.rdCrossBlending) {
-      ImGui::Text("Cross");
+    if (ImGui::RadioButton("Fade In/Out", renderData.rdBlendingMode == blendMode::crossFade)) {
+      renderData.rdBlendingMode = blendMode::crossFade;
     }
-    else {
-      ImGui::Text("Single");
-    }
-
-    if (renderData.rdCrossBlending) {
-      ImGui::BeginDisabled();
-    }
-
-    ImGui::Text("Blend Factor");
     ImGui::SameLine();
-    ImGui::SliderFloat("##BlendFactor", &renderData.rdAnimBlendFactor, 0.0f, 1.0f, "%.3f");
-
-    if (renderData.rdCrossBlending) {
-      ImGui::EndDisabled();
+    if (ImGui::RadioButton("Crossfading", renderData.rdBlendingMode == blendMode::crossFade)) {
+      renderData.rdBlendingMode = blendMode::crossFade;
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Additive", renderData.rdBlendingMode == blendMode::additive)) {
+      renderData.rdBlendingMode = blendMode::additive;
     }
 
-    if (!renderData.rdCrossBlending) {
-      ImGui::BeginDisabled();
+    if (renderData.rdBlendingMode == blendMode::crossFade ||
+        renderData.rdBlendingMode == blendMode::additive)
+    {
+      ImGui::Text("Dest Clip   ");
+      ImGui::SameLine();
+      if (ImGui::BeginCombo(
+              "##DestClipCombo",
+              renderData.rdClipNames.at(renderData.rdCrossBlendDestAnimClip).c_str()))
+      {
+        for (int i = 0; i < renderData.rdClipNames.size(); ++i) {
+          const bool isSelected = (renderData.rdCrossBlendDestAnimClip == i);
+          if (ImGui::Selectable(renderData.rdClipNames.at(i).c_str(), isSelected)) {
+            renderData.rdCrossBlendDestAnimClip = i;
+          }
+
+          if (isSelected) {
+            ImGui::SetItemDefaultFocus();
+          }
+        }
+        ImGui::EndCombo();
+      }
+
+      ImGui::Text("Cross Blend ");
+      ImGui::SameLine();
+      ImGui::SliderFloat(
+          "##CrossBlendFactor", &renderData.rdAnimCrossBlendFactor, 0.0f, 1.0f, "%.3f");
+    }
+
+    if (renderData.rdBlendingMode == blendMode::additive) {
+      ImGui::Text("Split Node  ");
+      ImGui::SameLine();
+      if (ImGui::BeginCombo(
+              "##SplitNodeCombo",
+              renderData.rdSkelSplitNodeNames.at(renderData.rdSkelSplitNode).c_str()))
+      {
+        for (int i = 0; i < renderData.rdSkelSplitNodeNames.size(); ++i) {
+          if (renderData.rdSkelSplitNodeNames.at(i).compare("(invalid)") != 0) {
+            const bool isSelected = (renderData.rdSkelSplitNode == i);
+            if (ImGui::Selectable(renderData.rdSkelSplitNodeNames.at(i).c_str(), isSelected)) {
+              renderData.rdSkelSplitNode = i;
+            }
+
+            if (isSelected) {
+              ImGui::SetItemDefaultFocus();
+            }
+          }
+        }
+        ImGui::EndCombo();
+      }
     }
 
     ImGui::Text("Dest Clip   ");
@@ -266,11 +311,6 @@ static void renderAnimationBlendingControls(OGLRenderData &renderData) {
     ImGui::SliderFloat(
         "##CrossBlendFactor", &renderData.rdAnimCrossBlendFactor, 0.0f, 1.0f, "%.3f");
 
-    ImGui::Checkbox("Additive Blending", &renderData.rdAdditiveBlending);
-
-    if (!renderData.rdAdditiveBlending) {
-      ImGui::BeginDisabled();
-    }
     ImGui::Text("Split Node  ");
     ImGui::SameLine();
 
@@ -288,13 +328,6 @@ static void renderAnimationBlendingControls(OGLRenderData &renderData) {
         }
       }
       ImGui::EndCombo();
-    }
-
-    if (!renderData.rdAdditiveBlending) {
-      ImGui::EndDisabled();
-    }
-    if (!renderData.rdCrossBlending) {
-      ImGui::EndDisabled();
     }
   }
 }

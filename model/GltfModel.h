@@ -31,8 +31,17 @@ class GltfModel {
   std::string getNodeName(int nodeNum);
 
   /* Animations */
-  void playAnimation(int animNum, float speedDiver, float blendFactor);
-  void playAnimation(int sourceAnimNum, int destAnimNum, float speedDivider, float blendFactor);
+  void playAnimation(int animNum,
+                     float speedDivider,
+                     float blendFactor,
+                     replayDirection direction);
+
+  void playAnimation(int sourceAnimNum,
+                     int destAnimNum,
+                     float speedDivider,
+                     float blendFactor,
+                     replayDirection direction);
+
   void blendAnimationFrame(int animNumber, float time, float blendFactor);
   void crossBlendAnimationFrame(int sourceAnimNumber,
                                 int destAnimNumber,

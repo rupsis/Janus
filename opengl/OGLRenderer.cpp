@@ -161,14 +161,11 @@ void OGLRenderer::draw() {
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
 
   /* animate */
-
-  static bool blendingChanged = mRenderData.rdCrossBlending;
-
-  // hard reset model if blending clip is changed.
-  if (blendingChanged != mRenderData.rdCrossBlending) {
-    blendingChanged = mRenderData.rdCrossBlending;
-    if (!mRenderData.rdCrossBlending) {
-      mRenderData.rdAdditiveBlending = false;
+  static blendMode lastBlendMode = mRenderData.rdBlendingMode;
+  if (lastBlendMode != mRenderData.rdBlendingMode) {
+    lastBlendMode = mRenderData.rdBlendingMode;
+    if (mRenderData.rdBlendingMode != blendMode::additive) {
+      mRenderData.rdSkelSplitNode = mRenderData.rdModelNodeCount - 1;
     }
     mGltfModel->resetNodeData();
   }
@@ -180,31 +177,28 @@ void OGLRenderer::draw() {
     mGltfModel->resetNodeData();
   }
 
-  static bool additiveBlendingChanged = mRenderData.rdAdditiveBlending;
-  if (additiveBlendingChanged != mRenderData.rdAdditiveBlending) {
-    additiveBlendingChanged = mRenderData.rdAdditiveBlending;
-    /* reset split when additive blending is disabled */
-    if (!mRenderData.rdAdditiveBlending) {
-      mRenderData.rdSkelSplitNode = mRenderData.rdModelNodeCount - 1;
-    }
-    mGltfModel->resetNodeData();
-  }
-
   if (mRenderData.rdPlayAnimation) {
-    if (mRenderData.rdCrossBlending) {
+    if (mRenderData.rdBlendingMode == blendMode::crossFade ||
+        mRenderData.rdBlendingMode == blendMode::additive)
+    {
       mGltfModel->playAnimation(mRenderData.rdAnimClip,
                                 mRenderData.rdCrossBlendDestAnimClip,
                                 mRenderData.rdAnimSpeed,
-                                mRenderData.rdAnimCrossBlendFactor);
+                                mRenderData.rdAnimCrossBlendFactor,
+                                mRenderData.rdAnimationPlayDirection);
     }
     else {
-      mGltfModel->playAnimation(
-          mRenderData.rdAnimClip, mRenderData.rdAnimSpeed, mRenderData.rdAnimBlendFactor);
+      mGltfModel->playAnimation(mRenderData.rdAnimClip,
+                                mRenderData.rdAnimSpeed,
+                                mRenderData.rdAnimBlendFactor,
+                                mRenderData.rdAnimationPlayDirection);
     }
   }
   else {
     mRenderData.rdAnimEndTime = mGltfModel->getAnimationEndTime(mRenderData.rdAnimClip);
-    if (mRenderData.rdCrossBlending) {
+    if (mRenderData.rdBlendingMode == blendMode::crossFade ||
+        mRenderData.rdBlendingMode == blendMode::additive)
+    {
       mGltfModel->crossBlendAnimationFrame(mRenderData.rdAnimClip,
                                            mRenderData.rdCrossBlendDestAnimClip,
                                            mRenderData.rdAnimTimePosition,
@@ -228,7 +222,7 @@ void OGLRenderer::draw() {
   matrixData.push_back(mProjectionMatrix);
   mUniformBuffer.uploadUboData(matrixData, 0);
 
-  if (mRenderData.rdGPUDualQuatVertexSkinning) {
+  if (mRenderData.rdGPUDualQuatVertexSkinning == skinningMode::dualQuat) {
     mGltfDualQuatSSBuffer.uploadSsboData(mGltfModel->getJointDualQuats(), 2);
   }
   else {
@@ -259,7 +253,7 @@ void OGLRenderer::draw() {
 
   /* draw the glTF model */
   if (mRenderData.rdDrawGltfModel) {
-    if (mRenderData.rdGPUDualQuatVertexSkinning) {
+    if (mRenderData.rdGPUDualQuatVertexSkinning == skinningMode::dualQuat) {
       mGltfGPUDualQuatShader.use();
     }
     else {
