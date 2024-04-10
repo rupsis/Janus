@@ -75,7 +75,7 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
 
   mRootNode = GltfNode::createRoot(rootNode);
   mNodeList.at(rootNode) = mRootNode;
-  getNodeData(mRootNode, glm::mat4(1.0f));
+  getNodeData(mRootNode);
   getNodes(mRootNode);
 
   /* get Skeleton data */
@@ -104,12 +104,14 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
   /* Load up nodes names for the UI.*/
   for (const auto &node : mNodeList) {
     if (node) {
-      renderData.rdSkelSplitNodeNames.push_back(node->getNodeName());
+      renderData.rdSkelNodeNames.push_back(node->getNodeName());
     }
     else {
-      renderData.rdSkelSplitNodeNames.push_back("(Invalid)");
+      renderData.rdSkelNodeNames.push_back("(Invalid)");
     }
   }
+
+  renderData.rdGltfTriangleCount = getTriangleCount();
 
   return true;
 }
@@ -237,15 +239,14 @@ void GltfModel::uploadIndexBuffer() {
                GL_STATIC_DRAW);
 }
 
-void GltfModel::updateNodeMatrices(std::shared_ptr<GltfNode> treeNode,
-                                   glm::mat4 parentNodeMatrix) {
-  treeNode->calculateNodeMatrix(parentNodeMatrix);
+void GltfModel::updateNodeMatrices(std::shared_ptr<GltfNode> treeNode) {
+  treeNode->calculateNodeMatrix();
   updateJointMatricesAndQuats(treeNode);
 
   glm::mat4 treeNodeMatrix = treeNode->getNodeMatrix();
 
   for (auto &childNode : treeNode->getChilds()) {
-    updateNodeMatrices(childNode, treeNodeMatrix);
+    updateNodeMatrices(childNode);
   }
 }
 
@@ -280,15 +281,15 @@ void GltfModel::updateJointMatricesAndQuats(std::shared_ptr<GltfNode> treeNode) 
 }
 
 void GltfModel::resetNodeData() {
-  getNodeData(mRootNode, glm::mat4(1.0f));
-  resetNodeData(mRootNode, glm::mat4(1.0f));
+  getNodeData(mRootNode);
+  resetNodeData(mRootNode);
 }
 
-void GltfModel::resetNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix) {
+void GltfModel::resetNodeData(std::shared_ptr<GltfNode> treeNode) {
   glm::mat4 treeNodeMatrix = treeNode->getNodeMatrix();
   for (auto &childNode : treeNode->getChilds()) {
-    getNodeData(childNode, treeNodeMatrix);
-    resetNodeData(childNode, treeNodeMatrix);
+    getNodeData(childNode);
+    resetNodeData(childNode);
   }
 }
 
@@ -411,16 +412,15 @@ void GltfModel::getNodes(std::shared_ptr<GltfNode> treeNode) {
   childNodes.erase(removeIt, childNodes.end());
 
   treeNode->addChilds(childNodes);
-  glm::mat4 treeNodeMatrix = treeNode->getNodeMatrix();
 
   for (auto &childNode : treeNode->getChilds()) {
     mNodeList.at(childNode->getNodeNum()) = childNode;
-    getNodeData(childNode, treeNodeMatrix);
+    getNodeData(childNode);
     getNodes(childNode);
   }
 }
 
-void GltfModel::getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix) {
+void GltfModel::getNodeData(std::shared_ptr<GltfNode> treeNode) {
   int nodeNum = treeNode->getNodeNum();
   const tinygltf::Node &node = mModel->nodes.at(nodeNum);
   treeNode->setNodeName(node.name);
@@ -428,15 +428,25 @@ void GltfModel::getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parent
   if (node.translation.size()) {
     treeNode->setTranslation(glm::make_vec3(node.translation.data()));
   }
+  else {
+    treeNode->setTranslation(glm::vec3(0.0f));
+  }
+
   if (node.rotation.size()) {
     treeNode->setRotation(glm::make_quat(node.rotation.data()));
   }
+  else {
+    treeNode->setRotation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
+  }
+
   if (node.scale.size()) {
     treeNode->setScale(glm::make_vec3(node.scale.data()));
   }
+  else {
+    treeNode->setScale(glm::vec3(1.0f));
+  }
 
-  treeNode->calculateLocalTRSMatrix();
-  treeNode->calculateNodeMatrix(parentNodeMatrix);
+  treeNode->calculateNodeMatrix();
 
   updateJointMatricesAndQuats(treeNode);
 }
@@ -500,6 +510,47 @@ std::string GltfModel::getNodeName(int nodeNum) {
   return "(Invalid)";
 }
 
+void GltfModel::setInverseKinematicsNodes(int effectorNodeNum, int ikChainRootNodeNum) {
+  if (effectorNodeNum < 0 || effectorNodeNum > (mNodeList.size() - 1)) {
+    Logger::log(1, "%s error: effector node %i is out of range\n", __FUNCTION__, effectorNodeNum);
+    return;
+  }
+
+  if (ikChainRootNodeNum < 0 || ikChainRootNodeNum > (mNodeList.size() - 1)) {
+    Logger::log(
+        1, "%s error: IK chaine root node %i is out of range\n", __FUNCTION__, ikChainRootNodeNum);
+    return;
+  }
+
+  std::vector<std::shared_ptr<GltfNode>> ikNodes{};
+  int currentNodeNum = effectorNodeNum;
+
+  ikNodes.insert(ikNodes.begin(), mNodeList.at(effectorNodeNum));
+  while (currentNodeNum != ikChainRootNodeNum) {
+    std::shared_ptr<GltfNode> node = mNodeList.at(currentNodeNum);
+    if (node) {
+      std::shared_ptr<GltfNode> parentNode = node->getParentNode();
+      if (parentNode) {
+        currentNodeNum = parentNode->getNodeNum();
+        ikNodes.push_back(parentNode);
+      }
+      else {
+        break;
+      }
+    }
+  }
+  mIKSolver.setNodes(ikNodes);
+}
+
+void GltfModel::setNumIKIterations(int iterations) {
+  mIKSolver.setNumIterations(iterations);
+}
+
+void GltfModel::solveIKByCCD(glm::vec3 target) {
+  mIKSolver.solveCCD(target);
+  updateNodeMatrices(mIKSolver.getIkChainRootNode());
+}
+
 /* Animation */
 
 void GltfModel::playAnimation(int animNum,
@@ -554,7 +605,7 @@ void GltfModel::playAnimation(int sourceAnimNumber,
 void GltfModel::blendAnimationFrame(int animNum, float time, float blendFactor) {
   mAnimClips.at(animNum)->blendAnimationFrame(
       mNodeList, mAdditiveAnimationMask, time, blendFactor);
-  updateNodeMatrices(mRootNode, glm::mat4(1.0f));
+  updateNodeMatrices(mRootNode);
 }
 
 void GltfModel::crossBlendAnimationFrame(int sourceAnimNumber,
@@ -575,7 +626,7 @@ void GltfModel::crossBlendAnimationFrame(int sourceAnimNumber,
   mAnimClips.at(sourceAnimNumber)
       ->blendAnimationFrame(mNodeList, mInvertedAdditiveAnimationMask, time, blendFactor);
 
-  updateNodeMatrices(mRootNode, glm::mat4(1.0f));
+  updateNodeMatrices(mRootNode);
 }
 
 /* ------ */

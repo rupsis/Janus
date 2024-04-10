@@ -99,10 +99,18 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
               modelJointDualQuatBufferSize);
 
   /* valid, but emtpy */
-  mSkeletonMesh = std::make_shared<OGLMesh>();
-  Logger::log(1, "%s: skeleton mesh storage initialized\n", __FUNCTION__);
+  mLineMesh = std::make_shared<OGLMesh>();
+  Logger::log(1, "%s: line mesh storage initialized\n", __FUNCTION__);
 
+  /* reset skeleton split */
   mRenderData.rdSkelSplitNode = mRenderData.rdModelNodeCount - 1;
+
+  /* set values for inverse kinematics */
+  /* hard-code right arm here for startup */
+  mRenderData.rdIkEffectorNode = 19;
+  mRenderData.rdIkRootNode = 26;
+  mGltfModel->setInverseKinematicsNodes(mRenderData.rdIkEffectorNode, mRenderData.rdIkRootNode);
+  mGltfModel->setNumIKIterations(mRenderData.rdIkIterations);
 
   mFrameTimer.start();
 
@@ -210,10 +218,40 @@ void OGLRenderer::draw() {
     }
   }
 
-  /* get gltTF skeleton */
-  if (mRenderData.rdDrawSkeleton) {
-    mSkeletonMesh = mGltfModel->getSkeleton();
+  /* solve IK*/
+  if (mRenderData.rdIkMode == ikMode::ccd) {
+    mIKTimer.start();
+    mGltfModel->solveIKByCCD(mRenderData.rdIkTargetPos);
+    mRenderData.rdIKTime = mIKTimer.stop();
   }
+
+  mLineMesh->vertices.clear();
+
+  /* get gltTF skeleton */
+  mSkeletonLineIndexCount = 0;
+  if (mRenderData.rdDrawSkeleton) {
+    std::shared_ptr<OGLMesh> mesh = mGltfModel->getSkeleton();
+    mSkeletonLineIndexCount += mesh->vertices.size();
+    mLineMesh->vertices.insert(
+        mLineMesh->vertices.begin(), mesh->vertices.begin(), mesh->vertices.end());
+  }
+
+  /* draw coordiante arrows on target position */
+  mCoordArrowsLineIndexCount = 0;
+  if (mRenderData.rdIkMode == ikMode::ccd) {
+    mCoordArrowsMesh = mCoordArrowsModel.getVertexData();
+    mCoordArrowsLineIndexCount = mCoordArrowsMesh.vertices.size();
+    std::for_each(
+        mCoordArrowsMesh.vertices.begin(), mCoordArrowsMesh.vertices.end(), [=](auto &n) {
+          n.color /= 2.0f;
+          n.position += mRenderData.rdIkTargetPos;
+        });
+
+    mLineMesh->vertices.insert(mLineMesh->vertices.end(),
+                               mCoordArrowsMesh.vertices.begin(),
+                               mCoordArrowsMesh.vertices.end());
+  }
+
   mRenderData.rdMatrixGenerateTime = mMatrixGenerateTimer.stop();
 
   mUploadToUBOTimer.start();
@@ -233,8 +271,8 @@ void OGLRenderer::draw() {
   /* upload vertex data */
   mUploadToVBOTimer.start();
 
-  if (mRenderData.rdDrawSkeleton) {
-    uploadData(*mSkeletonMesh);
+  if (mRenderData.rdDrawSkeleton || mRenderData.rdIkMode == ikMode::ccd) {
+    uploadData(*mLineMesh);
   }
 
   if (mModelUploadRequired) {
@@ -243,13 +281,6 @@ void OGLRenderer::draw() {
   }
 
   mRenderData.rdUploadToVBOTime = mUploadToVBOTimer.stop();
-
-  if (mRenderData.rdDrawSkeleton) {
-    mSkeletonLineIndexCount = mSkeletonMesh->vertices.size();
-  }
-  else {
-    mSkeletonLineIndexCount = 0;
-  }
 
   /* draw the glTF model */
   if (mRenderData.rdDrawGltfModel) {
