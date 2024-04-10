@@ -8,6 +8,8 @@
 
 #include "Texture.h"
 
+#include "IKSolver.h"
+
 #include "GltfAnimationClip.h"
 #include "GltfNode.h"
 
@@ -22,13 +24,23 @@ class GltfModel {
   void cleanup();
   void uploadVertexBuffers();
   void uploadIndexBuffer();
+
   std::shared_ptr<OGLMesh> getSkeleton();
   void setSkeletonSplitNode(int nodeNum);
   int getJointMatrixSize();
+
   std::vector<glm::mat4> getJointMatrices();
   int getJointDualQuatsSize();
   std::vector<glm::mat2x4> getJointDualQuats();
   std::string getNodeName(int nodeNum);
+
+  /* Inverse Kinematics */
+  void setInverseKinematicsNodes(int effectorNodeNum, int ikChainRootNodeNum);
+
+  void setNumIKIterations(int iterations);
+
+  // CCD Cyclic Coordinate Descent
+  void solveIKByCCD(glm::vec3 target);
 
   /* Animations */
   void playAnimation(int animNum,
@@ -64,9 +76,9 @@ class GltfModel {
   void getWeightData();
   void getInvBindMatrices();
   void getNodes(std::shared_ptr<GltfNode> treeNode);
-  void getNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
-  void resetNodeData(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
-  void updateNodeMatrices(std::shared_ptr<GltfNode> treeNode, glm::mat4 parentNodeMatrix);
+  void getNodeData(std::shared_ptr<GltfNode> treeNode);
+  void resetNodeData(std::shared_ptr<GltfNode> treeNode);
+  void updateNodeMatrices(std::shared_ptr<GltfNode> treeNode);
   void updateJointMatricesAndQuats(std::shared_ptr<GltfNode> treeNode);
   void updateAdditiveMask(std::shared_ptr<GltfNode> treeNode, int splitNodeNum);
 
@@ -104,4 +116,6 @@ class GltfModel {
   std::map<std::string, GLint> attributes = {
       {"POSITION", 0}, {"NORMAL", 1}, {"TEXCOORD_0", 2}, {"JOINTS_0", 3}, {"WEIGHTS_0", 4}};
   Texture mTex{};
+
+  IKSolver mIKSolver{};
 };

@@ -9,14 +9,21 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-class GltfNode {
+class GltfNode : public std::enable_shared_from_this<GltfNode> {
 
  public:
   static std::shared_ptr<GltfNode> createRoot(int rootNodeNum);
   void addChilds(std::vector<int> childNodes);
+
   std::vector<std::shared_ptr<GltfNode>> getChilds();
   int getNodeNum();
   std::string getNodeName();
+  std::shared_ptr<GltfNode> getParentNode();
+  glm::quat getLocalRotation();
+  glm::quat getGlobalRotation();
+  glm::vec3 getGlobalPosition();
+
+  void updateNodeAndChildMatrices();
 
   void setNodeName(std::string name);
   void setScale(glm::vec3 scale);
@@ -28,7 +35,7 @@ class GltfNode {
   void blendRotation(glm::quat rotation, float blendFactor);
 
   void calculateLocalTRSMatrix();
-  void calculateNodeMatrix(glm::mat4 parentNodeMatrix);
+  void calculateNodeMatrix();
   glm::mat4 getNodeMatrix();
 
   void printTree();
@@ -38,6 +45,10 @@ class GltfNode {
 
   int mNodeNum = 0;
   std::string mNodeName;
+
+  // Use weak pointer here to avoid circular dependency.
+  // weak pointer doesn't count toward reference counter.
+  std::weak_ptr<GltfNode> mParentNode;
 
   std::vector<std::shared_ptr<GltfNode>> mChildNodes{};
 

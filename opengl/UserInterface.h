@@ -17,6 +17,7 @@ class UserInterface {
   void renderModelControls(OGLRenderData &renderData);
   void renderAnimationControls(OGLRenderData &renderData);
   void renderAnimationBlendingControls(OGLRenderData &renderData);
+  void renderIKControls(OGLRenderData &renderData);
 
   float mFramesPerSecond = 0.0f;
   float mAveragingAlpha = 0.96f;
@@ -33,6 +34,9 @@ class UserInterface {
 
   std::vector<float> mMatrixGenerationValues{};
   int mNumMatrixGenerationValues = 90;
+
+  std::vector<float> mIKValues{};
+  int mNumIKValues = 90;
 
   std::vector<float> mMatrixUploadValues{};
   int mNumMatrixUploadValues = 90;
