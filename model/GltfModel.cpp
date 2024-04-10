@@ -78,7 +78,7 @@ bool GltfModel::loadModel(OGLRenderData &renderData,
   getNodeData(mRootNode);
   getNodes(mRootNode);
 
-  /* get Skeleton data */
+  /* init skeleton */
   mSkeletonMesh = std::make_shared<OGLMesh>();
   mSkeletonMesh->vertices.resize(mModel->nodes.size() * 2);
 

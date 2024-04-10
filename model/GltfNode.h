@@ -9,7 +9,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-class GltfNode : std::enable_shared_from_this<GltfNode> {
+class GltfNode : public std::enable_shared_from_this<GltfNode> {
 
  public:
   static std::shared_ptr<GltfNode> createRoot(int rootNodeNum);
