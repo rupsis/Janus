@@ -6,12 +6,14 @@
 #include <algorithm>
 
 std::shared_ptr<GltfNode> GltfNode::createRoot(int rootNodeNum) {
+  Logger::log(1, "%s: create root\n", __FUNCTION__);
   std::shared_ptr<GltfNode> mParentNode = std::make_shared<GltfNode>();
   mParentNode->mNodeNum = rootNodeNum;
   return mParentNode;
 }
 
 void GltfNode::addChilds(std::vector<int> childNodes) {
+  Logger::log(1, "%s: add child\n", __FUNCTION__);
   for (const int childNode : childNodes) {
     std::shared_ptr<GltfNode> child = std::make_shared<GltfNode>();
     child->mNodeNum = childNode;
