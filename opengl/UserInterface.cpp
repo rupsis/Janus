@@ -27,6 +27,7 @@ void UserInterface::init(OGLRenderData &renderData) {
   mFrameTimeValues.resize(mNumFrameTimeValues);
   mModelUploadValues.resize(mNumModelUploadValues);
   mMatrixGenerationValues.resize(mNumMatrixGenerationValues);
+  mIKValues.resize(mNumIKValues);
   mMatrixUploadValues.resize(mNumMatrixUploadValues);
   mUiGenValues.resize(mNumUiGenValues);
   mUiDrawValues.resize(mNumUiDrawValues);

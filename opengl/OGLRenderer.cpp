@@ -81,8 +81,6 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
     return false;
   }
 
-  Logger::log(1, "%s: Did I make it here? \n", __FUNCTION__);
-
   mGltfModel->uploadIndexBuffer();
   Logger::log(1, "%s: glTF model '%s' succesfully loaded\n", __FUNCTION__, modelFilename.c_str());
 
