@@ -169,7 +169,7 @@ void OGLRenderer::draw() {
 
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
 
-  /* animate */
+  /* check values and reset model nodes if required */
   static blendMode lastBlendMode = mRenderData.rdBlendingMode;
   if (lastBlendMode != mRenderData.rdBlendingMode) {
     lastBlendMode = mRenderData.rdBlendingMode;
@@ -186,6 +186,33 @@ void OGLRenderer::draw() {
     mGltfModel->resetNodeData();
   }
 
+  static ikMode lastIkMode = mRenderData.rdIkMode;
+  if (lastIkMode != mRenderData.rdIkMode) {
+    mGltfModel->resetNodeData();
+    lastIkMode = mRenderData.rdIkMode;
+    /* clear timer */
+    if (mRenderData.rdIkMode == ikMode::off) {
+      mRenderData.rdIKTime = 0.0f;
+    }
+  }
+
+  static int numIKIterations = mRenderData.rdIkIterations;
+  if (numIKIterations != mRenderData.rdIkIterations) {
+    mGltfModel->setNumIKIterations(mRenderData.rdIkIterations);
+    mGltfModel->resetNodeData();
+    numIKIterations = mRenderData.rdIkIterations;
+  }
+
+  static int ikEffectorNode = mRenderData.rdIkEffectorNode;
+  static int ikRootNode = mRenderData.rdIkRootNode;
+  if (ikEffectorNode != mRenderData.rdIkEffectorNode || ikRootNode != mRenderData.rdIkRootNode) {
+    mGltfModel->setInverseKinematicsNodes(mRenderData.rdIkEffectorNode, mRenderData.rdIkRootNode);
+    mGltfModel->resetNodeData();
+    ikEffectorNode = mRenderData.rdIkEffectorNode;
+    ikRootNode = mRenderData.rdIkRootNode;
+  }
+
+  /* animate */
   if (mRenderData.rdPlayAnimation) {
     if (mRenderData.rdBlendingMode == blendMode::crossFade ||
         mRenderData.rdBlendingMode == blendMode::additive)
@@ -219,7 +246,7 @@ void OGLRenderer::draw() {
     }
   }
 
-  /* solve IK*/
+  /* solve IK */
   if (mRenderData.rdIkMode == ikMode::ccd) {
     mIKTimer.start();
     mGltfModel->solveIKByCCD(mRenderData.rdIkTargetPos);
@@ -294,8 +321,14 @@ void OGLRenderer::draw() {
     mGltfModel->draw();
   }
 
-  /* draw the skeleton last, disable depth test to overlay */
-  if (mSkeletonLineIndexCount > 0 && mRenderData.rdDrawSkeleton) {
+  /* draw the coordinate arrow WITH depth buffer */
+  if (mCoordArrowsLineIndexCount > 0) {
+    mLineShader.use();
+    mVertexBuffer.bindAndDraw(GL_LINES, mSkeletonLineIndexCount, mCoordArrowsLineIndexCount);
+  }
+
+  /* draw the skeleton, disable depth test to overlay */
+  if (mSkeletonLineIndexCount > 0) {
     glDisable(GL_DEPTH_TEST);
     mLineShader.use();
     mVertexBuffer.bindAndDraw(GL_LINES, 0, mSkeletonLineIndexCount);
