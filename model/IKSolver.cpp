@@ -149,8 +149,9 @@ bool IKSolver::solveFABRIK(glm::vec3 target) {
     return false;
   }
 
-  for (size_t i = 0; i < mNodes.size() - 1; ++i) {
-    mFABRIKNodePositions.at(i) = mNodes.at(i)->getGlobalPosition();
+  for (size_t i = 0; i < mNodes.size(); ++i) {
+    std::shared_ptr<GltfNode> node = mNodes.at(i);
+    mFABRIKNodePositions.at(i) = node->getGlobalPosition();
   }
 
   glm::vec3 base = getIkChainRootNode()->getGlobalPosition();
