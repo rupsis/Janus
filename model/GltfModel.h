@@ -39,8 +39,11 @@ class GltfModel {
 
   void setNumIKIterations(int iterations);
 
-  // CCD Cyclic Coordinate Descent
+  // CCD - Cyclic Coordinate Descent
   void solveIKByCCD(glm::vec3 target);
+
+  // FABRIK - Forwards And Backwards Reaching Inverse Kinematics
+  void solveIKByFABRIK(glm::vec3 target);
 
   /* Animations */
   void playAnimation(int animNum,

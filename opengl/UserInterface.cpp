@@ -561,7 +561,11 @@ void UserInterface::renderIKControls(OGLRenderData &renderData) {
       renderData.rdIkMode = ikMode::ccd;
     }
 
-    if (renderData.rdIkMode == ikMode::ccd) {
+    if (ImGui::RadioButton("FABRIK", renderData.rdIkMode == ikMode::fabrik)) {
+      renderData.rdIkMode = ikMode::fabrik;
+    }
+
+    if (renderData.rdIkMode == ikMode::ccd || renderData.rdIkMode == ikMode::fabrik) {
       ImGui::Text("IK Iterations  :");
       ImGui::SameLine();
       ImGui::SliderInt("##IKITER", &renderData.rdIkIterations, 0, 15, "%d");

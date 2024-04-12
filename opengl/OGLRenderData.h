@@ -29,7 +29,7 @@ enum class blendMode { fadeInOut = 0, crossFade, additive };
 enum class replayDirection { forward = 0, backward };
 
 /* Inverse Kinematics. */
-enum class ikMode { off = 0, ccd };
+enum class ikMode { off = 0, ccd, fabrik };
 
 struct OGLRenderData {
   GLFWwindow *rdWindow = nullptr;
