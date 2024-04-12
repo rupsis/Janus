@@ -560,7 +560,7 @@ void UserInterface::renderIKControls(OGLRenderData &renderData) {
     if (ImGui::RadioButton("CCD", renderData.rdIkMode == ikMode::ccd)) {
       renderData.rdIkMode = ikMode::ccd;
     }
-
+    ImGui::SameLine();
     if (ImGui::RadioButton("FABRIK", renderData.rdIkMode == ikMode::fabrik)) {
       renderData.rdIkMode = ikMode::fabrik;
     }
