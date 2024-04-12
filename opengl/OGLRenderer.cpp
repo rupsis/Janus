@@ -274,7 +274,7 @@ void OGLRenderer::draw() {
 
   /* draw coordiante arrows on target position */
   mCoordArrowsLineIndexCount = 0;
-  if (mRenderData.rdIkMode == ikMode::ccd) {
+  if (mRenderData.rdIkMode == ikMode::ccd || mRenderData.rdIkMode == ikMode::fabrik) {
     mCoordArrowsMesh = mCoordArrowsModel.getVertexData();
     mCoordArrowsLineIndexCount = mCoordArrowsMesh.vertices.size();
     std::for_each(
@@ -307,7 +307,9 @@ void OGLRenderer::draw() {
   /* upload vertex data */
   mUploadToVBOTimer.start();
 
-  if (mRenderData.rdDrawSkeleton || mRenderData.rdIkMode == ikMode::ccd) {
+  if (mRenderData.rdDrawSkeleton || mRenderData.rdIkMode == ikMode::ccd ||
+      mRenderData.rdIkMode == ikMode::fabrik)
+  {
     uploadData(*mLineMesh);
   }
 
