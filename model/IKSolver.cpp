@@ -83,6 +83,7 @@ void IKSolver::calculateBoneLengths() {
     glm::vec3 startNodePos = startNode->getGlobalPosition();
     glm::vec3 endNodePos = endNode->getGlobalPosition();
     mBoneLengths.at(i) = glm::length(endNodePos - startNodePos);
+    Logger::log(2, "%s: bone %i has length %f\n", __FUNCTION__, i, mBoneLengths.at(i));
   }
 }
 
@@ -164,7 +165,7 @@ bool IKSolver::solveFABRIK(glm::vec3 target) {
     }
 
     solveFABRIKForward(target);
-    solveFABRIKBackward(target);
+    solveFABRIKBackward(base);
   }
 
   adjustFABRIKNodes();
