@@ -80,6 +80,7 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
     Logger::log(1, "%s: loading glTF model '%s' failed\n", __FUNCTION__, modelFilename.c_str());
     return false;
   }
+
   mGltfModel->uploadIndexBuffer();
   Logger::log(1, "%s: glTF model '%s' succesfully loaded\n", __FUNCTION__, modelFilename.c_str());
 
@@ -99,10 +100,18 @@ bool OGLRenderer::init(unsigned int width, unsigned int height) {
               modelJointDualQuatBufferSize);
 
   /* valid, but emtpy */
-  mSkeletonMesh = std::make_shared<OGLMesh>();
-  Logger::log(1, "%s: skeleton mesh storage initialized\n", __FUNCTION__);
+  mLineMesh = std::make_shared<OGLMesh>();
+  Logger::log(1, "%s: line mesh storage initialized\n", __FUNCTION__);
 
+  /* reset skeleton split */
   mRenderData.rdSkelSplitNode = mRenderData.rdModelNodeCount - 1;
+
+  /* set values for inverse kinematics */
+  /* hard-code right arm here for startup */
+  mRenderData.rdIkEffectorNode = 19;
+  mRenderData.rdIkRootNode = 26;
+  mGltfModel->setInverseKinematicsNodes(mRenderData.rdIkEffectorNode, mRenderData.rdIkRootNode);
+  mGltfModel->setNumIKIterations(mRenderData.rdIkIterations);
 
   mFrameTimer.start();
 
@@ -160,7 +169,7 @@ void OGLRenderer::draw() {
 
   mViewMatrix = mCamera.getViewMatrix(mRenderData);
 
-  /* animate */
+  /* check values and reset model nodes if required */
   static blendMode lastBlendMode = mRenderData.rdBlendingMode;
   if (lastBlendMode != mRenderData.rdBlendingMode) {
     lastBlendMode = mRenderData.rdBlendingMode;
@@ -177,6 +186,33 @@ void OGLRenderer::draw() {
     mGltfModel->resetNodeData();
   }
 
+  static ikMode lastIkMode = mRenderData.rdIkMode;
+  if (lastIkMode != mRenderData.rdIkMode) {
+    mGltfModel->resetNodeData();
+    lastIkMode = mRenderData.rdIkMode;
+    /* clear timer */
+    if (mRenderData.rdIkMode == ikMode::off) {
+      mRenderData.rdIKTime = 0.0f;
+    }
+  }
+
+  static int numIKIterations = mRenderData.rdIkIterations;
+  if (numIKIterations != mRenderData.rdIkIterations) {
+    mGltfModel->setNumIKIterations(mRenderData.rdIkIterations);
+    mGltfModel->resetNodeData();
+    numIKIterations = mRenderData.rdIkIterations;
+  }
+
+  static int ikEffectorNode = mRenderData.rdIkEffectorNode;
+  static int ikRootNode = mRenderData.rdIkRootNode;
+  if (ikEffectorNode != mRenderData.rdIkEffectorNode || ikRootNode != mRenderData.rdIkRootNode) {
+    mGltfModel->setInverseKinematicsNodes(mRenderData.rdIkEffectorNode, mRenderData.rdIkRootNode);
+    mGltfModel->resetNodeData();
+    ikEffectorNode = mRenderData.rdIkEffectorNode;
+    ikRootNode = mRenderData.rdIkRootNode;
+  }
+
+  /* animate */
   if (mRenderData.rdPlayAnimation) {
     if (mRenderData.rdBlendingMode == blendMode::crossFade ||
         mRenderData.rdBlendingMode == blendMode::additive)
@@ -210,10 +246,48 @@ void OGLRenderer::draw() {
     }
   }
 
-  /* get gltTF skeleton */
-  if (mRenderData.rdDrawSkeleton) {
-    mSkeletonMesh = mGltfModel->getSkeleton();
+  /* solve IK */
+  if (mRenderData.rdIkMode != ikMode::off) {
+    mIKTimer.start();
+    switch (mRenderData.rdIkMode) {
+      case ikMode::ccd:
+        mGltfModel->solveIKByCCD(mRenderData.rdIkTargetPos);
+        break;
+      case ikMode::fabrik:
+        mGltfModel->solveIKByFABRIK(mRenderData.rdIkTargetPos);
+      default:
+        break;
+    }
+    mRenderData.rdIKTime = mIKTimer.stop();
   }
+
+  mLineMesh->vertices.clear();
+
+  /* get gltTF skeleton */
+  mSkeletonLineIndexCount = 0;
+  if (mRenderData.rdDrawSkeleton) {
+    std::shared_ptr<OGLMesh> mesh = mGltfModel->getSkeleton();
+    mSkeletonLineIndexCount += mesh->vertices.size();
+    mLineMesh->vertices.insert(
+        mLineMesh->vertices.begin(), mesh->vertices.begin(), mesh->vertices.end());
+  }
+
+  /* draw coordiante arrows on target position */
+  mCoordArrowsLineIndexCount = 0;
+  if (mRenderData.rdIkMode == ikMode::ccd || mRenderData.rdIkMode == ikMode::fabrik) {
+    mCoordArrowsMesh = mCoordArrowsModel.getVertexData();
+    mCoordArrowsLineIndexCount = mCoordArrowsMesh.vertices.size();
+    std::for_each(
+        mCoordArrowsMesh.vertices.begin(), mCoordArrowsMesh.vertices.end(), [=](auto &n) {
+          n.color /= 2.0f;
+          n.position += mRenderData.rdIkTargetPos;
+        });
+
+    mLineMesh->vertices.insert(mLineMesh->vertices.end(),
+                               mCoordArrowsMesh.vertices.begin(),
+                               mCoordArrowsMesh.vertices.end());
+  }
+
   mRenderData.rdMatrixGenerateTime = mMatrixGenerateTimer.stop();
 
   mUploadToUBOTimer.start();
@@ -233,8 +307,10 @@ void OGLRenderer::draw() {
   /* upload vertex data */
   mUploadToVBOTimer.start();
 
-  if (mRenderData.rdDrawSkeleton) {
-    uploadData(*mSkeletonMesh);
+  if (mRenderData.rdDrawSkeleton || mRenderData.rdIkMode == ikMode::ccd ||
+      mRenderData.rdIkMode == ikMode::fabrik)
+  {
+    uploadData(*mLineMesh);
   }
 
   if (mModelUploadRequired) {
@@ -243,13 +319,6 @@ void OGLRenderer::draw() {
   }
 
   mRenderData.rdUploadToVBOTime = mUploadToVBOTimer.stop();
-
-  if (mRenderData.rdDrawSkeleton) {
-    mSkeletonLineIndexCount = mSkeletonMesh->vertices.size();
-  }
-  else {
-    mSkeletonLineIndexCount = 0;
-  }
 
   /* draw the glTF model */
   if (mRenderData.rdDrawGltfModel) {
@@ -262,8 +331,14 @@ void OGLRenderer::draw() {
     mGltfModel->draw();
   }
 
-  /* draw the skeleton last, disable depth test to overlay */
-  if (mSkeletonLineIndexCount > 0 && mRenderData.rdDrawSkeleton) {
+  /* draw the coordinate arrow WITH depth buffer */
+  if (mCoordArrowsLineIndexCount > 0) {
+    mLineShader.use();
+    mVertexBuffer.bindAndDraw(GL_LINES, mSkeletonLineIndexCount, mCoordArrowsLineIndexCount);
+  }
+
+  /* draw the skeleton, disable depth test to overlay */
+  if (mSkeletonLineIndexCount > 0) {
     glDisable(GL_DEPTH_TEST);
     mLineShader.use();
     mVertexBuffer.bindAndDraw(GL_LINES, 0, mSkeletonLineIndexCount);

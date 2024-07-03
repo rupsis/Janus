@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 
 #include <imgui_impl_glfw.h>
@@ -26,6 +27,7 @@ void UserInterface::init(OGLRenderData &renderData) {
   mFrameTimeValues.resize(mNumFrameTimeValues);
   mModelUploadValues.resize(mNumModelUploadValues);
   mMatrixGenerationValues.resize(mNumMatrixGenerationValues);
+  mIKValues.resize(mNumIKValues);
   mMatrixUploadValues.resize(mNumMatrixUploadValues);
   mUiGenValues.resize(mNumUiGenValues);
   mUiDrawValues.resize(mNumUiDrawValues);
@@ -107,6 +109,7 @@ void UserInterface::renderTimers(OGLRenderData &renderData) {
   static int frameTimeOffset = 0;
   static int modelUploadOffset = 0;
   static int matrixGenOffset = 0;
+  static int ikOffset = 0;
   static int matrixUploadOffset = 0;
   static int uiGenOffset = 0;
   static int uiDrawOffset = 0;
@@ -123,6 +126,9 @@ void UserInterface::renderTimers(OGLRenderData &renderData) {
 
     mMatrixGenerationValues.at(matrixGenOffset) = renderData.rdMatrixGenerateTime;
     matrixGenOffset = ++matrixGenOffset % mNumMatrixGenerationValues;
+
+    mIKValues.at(ikOffset) = renderData.rdIKTime;
+    ikOffset = ++ikOffset % mNumIKValues;
 
     mMatrixUploadValues.at(matrixUploadOffset) = renderData.rdUploadToUBOTime;
     matrixUploadOffset = ++matrixUploadOffset % mNumMatrixUploadValues;
@@ -251,6 +257,36 @@ void UserInterface::renderTimers(OGLRenderData &renderData) {
                        mMatrixGenerationValues.size(),
                        matrixGenOffset,
                        matrixGenOverlay.c_str(),
+                       0.0f,
+                       FLT_MAX,
+                       ImVec2(0, 80));
+      ImGui::EndTooltip();
+    }
+
+    ImGui::BeginGroup();
+    ImGui::Text("(IK Generation Time)  :");
+    ImGui::SameLine();
+    ImGui::Text("%s", std::to_string(renderData.rdIKTime).c_str());
+    ImGui::SameLine();
+    ImGui::Text("ms");
+    ImGui::EndGroup();
+
+    if (ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      float averageIKTime = 0.0f;
+      for (const auto value : mIKValues) {
+        averageIKTime += value;
+      }
+      averageIKTime /= static_cast<float>(mNumIKValues);
+      std::string ikOverlay = "now:     " + std::to_string(renderData.rdIKTime) +
+                              " ms\n30s avg: " + std::to_string(averageIKTime) + " ms";
+      ImGui::Text("(IK Generation)");
+      ImGui::SameLine();
+      ImGui::PlotLines("##IKTimes",
+                       mIKValues.data(),
+                       mIKValues.size(),
+                       ikOffset,
+                       ikOverlay.c_str(),
                        0.0f,
                        FLT_MAX,
                        ImVec2(0, 80));
@@ -434,6 +470,8 @@ void UserInterface::renderAnimationControls(OGLRenderData &renderData) {
     if (renderData.rdPlayAnimation) {
       ImGui::EndDisabled();
     }
+
+    renderIKControls(renderData);
   }
 }
 
@@ -490,20 +528,84 @@ void UserInterface::renderAnimationBlendingControls(OGLRenderData &renderData) {
     if (renderData.rdBlendingMode == blendMode::additive) {
       ImGui::Text("Split Node  ");
       ImGui::SameLine();
-      if (ImGui::BeginCombo(
-              "##SplitNodeCombo",
-              renderData.rdSkelSplitNodeNames.at(renderData.rdSkelSplitNode).c_str()))
+      if (ImGui::BeginCombo("##SplitNodeCombo",
+                            renderData.rdSkelNodeNames.at(renderData.rdSkelSplitNode).c_str()))
       {
-        for (int i = 0; i < renderData.rdSkelSplitNodeNames.size(); ++i) {
-          if (renderData.rdSkelSplitNodeNames.at(i).compare("(invalid)") != 0) {
+        for (int i = 0; i < renderData.rdSkelNodeNames.size(); ++i) {
+          if (renderData.rdSkelNodeNames.at(i).compare("(invalid)") != 0) {
             const bool isSelected = (renderData.rdSkelSplitNode == i);
-            if (ImGui::Selectable(renderData.rdSkelSplitNodeNames.at(i).c_str(), isSelected)) {
+            if (ImGui::Selectable(renderData.rdSkelNodeNames.at(i).c_str(), isSelected)) {
               renderData.rdSkelSplitNode = i;
             }
 
             if (isSelected) {
               ImGui::SetItemDefaultFocus();
             }
+          }
+        }
+        ImGui::EndCombo();
+      }
+    }
+  }
+}
+
+void UserInterface::renderIKControls(OGLRenderData &renderData) {
+  if (ImGui::CollapsingHeader("glTF Inverse Kinematic")) {
+    ImGui::Text("Inverse Kinematics");
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Off", renderData.rdIkMode == ikMode::off)) {
+      renderData.rdIkMode = ikMode::off;
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("CCD", renderData.rdIkMode == ikMode::ccd)) {
+      renderData.rdIkMode = ikMode::ccd;
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("FABRIK", renderData.rdIkMode == ikMode::fabrik)) {
+      renderData.rdIkMode = ikMode::fabrik;
+    }
+
+    if (renderData.rdIkMode == ikMode::ccd || renderData.rdIkMode == ikMode::fabrik) {
+      ImGui::Text("IK Iterations  :");
+      ImGui::SameLine();
+      ImGui::SliderInt("##IKITER", &renderData.rdIkIterations, 0, 15, "%d");
+
+      ImGui::Text("Target Position:");
+      ImGui::SameLine();
+      ImGui::SliderFloat3(
+          "##IKTargetPOS", glm::value_ptr(renderData.rdIkTargetPos), -10.0f, 10.0f, "%.3f");
+
+      ImGui::Text("Effector Node  :");
+      ImGui::SameLine();
+      if (ImGui::BeginCombo("##EffectorNodeCombo",
+                            renderData.rdSkelNodeNames.at(renderData.rdIkEffectorNode).c_str()))
+      {
+        for (int i = 0; i < renderData.rdSkelNodeNames.size(); ++i) {
+          const bool isSelected = (renderData.rdIkEffectorNode == i);
+          if (ImGui::Selectable(renderData.rdSkelNodeNames.at(i).c_str(), isSelected)) {
+            renderData.rdIkEffectorNode = i;
+          }
+
+          if (isSelected) {
+            ImGui::SetItemDefaultFocus();
+          }
+        }
+        ImGui::EndCombo();
+      }
+
+      ImGui::Text("IK Root Node   :");
+      ImGui::SameLine();
+      if (ImGui::BeginCombo("##RootNodeCombo",
+                            renderData.rdSkelNodeNames.at(renderData.rdIkRootNode).c_str()))
+      {
+        for (int i = 0; i < renderData.rdSkelNodeNames.size(); ++i) {
+          const bool isSelected = (renderData.rdIkRootNode == i);
+          if (ImGui::Selectable(renderData.rdSkelNodeNames.at(i).c_str(), isSelected)) {
+            renderData.rdIkRootNode = i;
+          }
+
+          if (isSelected) {
+            ImGui::SetItemDefaultFocus();
           }
         }
         ImGui::EndCombo();

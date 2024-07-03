@@ -28,6 +28,9 @@ enum class blendMode { fadeInOut = 0, crossFade, additive };
 
 enum class replayDirection { forward = 0, backward };
 
+/* Inverse Kinematics. */
+enum class ikMode { off = 0, ccd, fabrik };
+
 struct OGLRenderData {
   GLFWwindow *rdWindow = nullptr;
 
@@ -39,6 +42,7 @@ struct OGLRenderData {
 
   float rdFrameTime = 0.0f;
   float rdMatrixGenerateTime = 0.0f;
+  float rdIKTime = 0.0f;
   float rdUploadToVBOTime = 0.0f;
   float rdUploadToUBOTime = 0.0f;
   float rdUIGenerateTime = 0.0f;
@@ -73,9 +77,16 @@ struct OGLRenderData {
   int rdCrossBlendDestAnimClip = 0;
   float rdAnimCrossBlendFactor = 0.0f;
 
+  /* Inverse Kinematics.*/
+  ikMode rdIkMode = ikMode::off;
+  int rdIkIterations = 10;
+  glm::vec3 rdIkTargetPos = glm::vec3(0.0f, 3.0f, 1.0f);
+  int rdIkEffectorNode = 0;
+  int rdIkRootNode = 0;
+
   int rdModelNodeCount = 0;
   int rdSkelSplitNode = 0;
-  std::vector<std::string> rdSkelSplitNodeNames{};
+  std::vector<std::string> rdSkelNodeNames{};
 
   skinningMode rdGPUDualQuatVertexSkinning = skinningMode::linear;
   blendMode rdBlendingMode = blendMode::fadeInOut;

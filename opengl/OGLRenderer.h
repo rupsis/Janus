@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "Camera.h"
+#include "CoordArrowsModel.h"
 #include "Framebuffer.h"
 #include "GltfModel.h"
 #include "Shader.h"
@@ -52,9 +53,6 @@ class OGLRenderer {
   std::shared_ptr<GltfModel> mGltfModel = nullptr;
   bool mModelUploadRequired = true;
 
-  std::shared_ptr<OGLMesh> mSkeletonMesh = nullptr;
-  unsigned int mSkeletonLineIndexCount = 0;
-
   /* Shaders. */
   Shader mGltfShader{};
   Shader mGltfGPUShader{};
@@ -85,8 +83,15 @@ class OGLRenderer {
   Timer mUploadToUBOTimer{};
   Timer mUIGenerateTimer{};
   Timer mUIDrawTimer{};
+  Timer mIKTimer{};
 
   Camera mCamera{};
+
+  CoordArrowsModel mCoordArrowsModel{};
+  OGLMesh mCoordArrowsMesh{};
+  std::shared_ptr<OGLMesh> mLineMesh = nullptr;
+  unsigned int mSkeletonLineIndexCount = 0;
+  unsigned int mCoordArrowsLineIndexCount = 0;
 
   /* Mouse values. */
   bool mMouseLock = false;
